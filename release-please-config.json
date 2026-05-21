@@ -1,0 +1,24 @@
+{
+  "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
+  "packages": {
+    ".": {
+      "release-type": "elixir",
+      "package-name": "git_hoox",
+      "include-component-in-tag": false,
+      "include-v-in-tag": true,
+      "changelog-sections": [
+        { "type": "feat",     "section": "Features" },
+        { "type": "fix",      "section": "Bug Fixes" },
+        { "type": "perf",     "section": "Performance" },
+        { "type": "deps",     "section": "Dependencies" },
+        { "type": "refactor", "section": "Refactor" },
+        { "type": "docs",     "section": "Documentation", "hidden": false },
+        { "type": "chore",    "section": "Chores",        "hidden": true },
+        { "type": "test",     "section": "Tests",         "hidden": true },
+        { "type": "ci",       "section": "CI",            "hidden": true },
+        { "type": "build",    "section": "Build",         "hidden": true }
+      ],
+      "extra-files": []
+    }
+  }
+}

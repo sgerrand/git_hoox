@@ -1,0 +1,20 @@
+style = "conventional"
+subject_length = 72
+line_length = 72
+subject_capitalized = false
+imperative_subject = true
+no_fixup = true
+no_wip = true
+allowed_types = [
+  "feat",
+  "fix",
+  "perf",
+  "deps",
+  "refactor",
+  "docs",
+  "chore",
+  "test",
+  "ci",
+  "build",
+  "revert",
+]

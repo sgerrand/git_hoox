@@ -1,0 +1,44 @@
+name: Publish
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment: hex
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: ${{ github.event.release.tag_name }}
+
+      - uses: erlef/setup-beam@fc68ffb90438ef2936bbb3251622353b3dcb2f93 # v1.24.0
+        with:
+          otp-version: "27"
+          elixir-version: "1.19"
+
+      - uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        with:
+          path: |
+            deps
+            _build
+          key: mix-${{ runner.os }}-1.19-27-${{ hashFiles('**/mix.lock') }}
+
+      - run: mix deps.get
+
+      - name: Verify tag matches mix.exs version
+        run: |
+          TAG="${{ github.event.release.tag_name }}"
+          MIX_VERSION=$(mix run --no-start --no-deps-check -e 'IO.puts(Mix.Project.config()[:version])')
+          if [ "v$MIX_VERSION" != "$TAG" ]; then
+            echo "Tag $TAG does not match mix.exs v$MIX_VERSION"
+            exit 1
+          fi
+
+      - run: mix hex.publish --yes
+        env:
+          HEX_API_KEY: ${{ secrets.HEX_API_KEY }}

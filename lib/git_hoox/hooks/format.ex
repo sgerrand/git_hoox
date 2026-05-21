@@ -1,0 +1,41 @@
+defmodule GitHoox.Hooks.Format do
+  @moduledoc """
+  Runs `mix format` against staged Elixir files.
+
+  ## Options
+
+    * `:check_only` — use `mix format --check-formatted`. Fails instead of mutating.
+
+  ## Defaults
+
+    * `stage_fixed: true`
+    * `files: ~w(*.ex *.exs *.heex)`
+  """
+
+  @behaviour GitHoox.Hook
+
+  @impl true
+  @spec default_opts() :: keyword()
+  def default_opts, do: [stage_fixed: true, files: ~w(*.ex *.exs *.heex)]
+
+  @impl true
+  @spec run(GitHoox.Hook.files(), GitHoox.Hook.opts()) :: GitHoox.hook_result()
+  def run([], _opts), do: :ok
+
+  def run(files, opts) do
+    args =
+      if Keyword.get(opts, :check_only, false) do
+        ["format", "--check-formatted" | files]
+      else
+        ["format" | files]
+      end
+
+    case System.cmd("mix", args, stderr_to_stdout: true) do
+      {_, 0} ->
+        {:ok, GitHoox.Git.changed_in_worktree(files)}
+
+      {out, code} ->
+        {:error, {code, out}}
+    end
+  end
+end

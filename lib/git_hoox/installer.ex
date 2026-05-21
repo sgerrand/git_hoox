@@ -1,0 +1,147 @@
+defmodule GitHoox.Installer do
+  @moduledoc """
+  Manage `.git/hooks/*` shim files.
+
+  Refuses to overwrite user-authored hooks. Pass `force: true` to back up
+  and replace. Detects own shims by `# git_hoox managed` marker.
+  """
+
+  alias GitHoox.Git
+
+  @hooks ~w(pre-commit prepare-commit-msg commit-msg post-commit
+            pre-rebase post-checkout post-merge pre-push)
+
+  @marker "# git_hoox managed"
+
+  @typedoc "Per-hook installer plan entry."
+  @type action ::
+          :write
+          | :overwrite_managed
+          | :overwrite_with_backup
+
+  @type install_error ::
+          :not_a_git_repo
+          | {:exists, Path.t(), String.t()}
+
+  @type plan_entry :: {String.t(), Path.t(), action()}
+
+  @doc """
+  Install hook shims into `.git/hooks/`.
+
+  ## Options
+
+    * `:force` — overwrite user hooks with backup. Default `false`.
+    * `:dry_run` — print plan, no writes. Default `false`.
+  """
+  @spec install(keyword()) :: {:ok, [plan_entry()]} | {:error, install_error()}
+  def install(opts \\ []) do
+    force? = Keyword.get(opts, :force, false)
+    dry? = Keyword.get(opts, :dry_run, false)
+
+    with {:ok, dir} <- Git.hooks_dir(),
+         :ok <- File.mkdir_p(dir),
+         {:ok, plan} <- plan(dir, force?) do
+      execute(plan, dry?)
+    end
+  end
+
+  @doc "Remove managed shims. Restore latest backup if present."
+  @spec uninstall(keyword()) :: {:ok, non_neg_integer()} | {:error, install_error()}
+  def uninstall(_opts \\ []) do
+    with {:ok, dir} <- Git.hooks_dir() do
+      count =
+        @hooks
+        |> Enum.map(&Path.join(dir, &1))
+        |> Enum.filter(&managed?/1)
+        |> Enum.map(&remove_with_restore/1)
+        |> Enum.count()
+
+      {:ok, count}
+    end
+  end
+
+  defp plan(dir, force?) do
+    Enum.reduce_while(@hooks, {:ok, []}, fn hook, {:ok, acc} ->
+      path = Path.join(dir, hook)
+
+      case classify(path, force?) do
+        {:error, _} = err -> {:halt, err}
+        action -> {:cont, {:ok, [{hook, path, action} | acc]}}
+      end
+    end)
+    |> case do
+      {:ok, entries} -> {:ok, Enum.reverse(entries)}
+      err -> err
+    end
+  end
+
+  defp classify(path, force?) do
+    cond do
+      not File.exists?(path) ->
+        :write
+
+      managed?(path) ->
+        :overwrite_managed
+
+      force? ->
+        :overwrite_with_backup
+
+      true ->
+        {:error,
+         {:exists, path,
+          "Hook exists and is not managed by git_hoox. Re-run with --force to backup and overwrite."}}
+    end
+  end
+
+  defp managed?(path) do
+    case File.read(path) do
+      {:ok, content} -> String.contains?(content, @marker)
+      _ -> false
+    end
+  end
+
+  defp execute(plan, true), do: {:ok, plan}
+
+  defp execute(plan, false) do
+    Enum.each(plan, fn {hook, path, action} ->
+      if action == :overwrite_with_backup, do: backup(path)
+      File.write!(path, shim(hook))
+      File.chmod!(path, 0o755)
+    end)
+
+    {:ok, plan}
+  end
+
+  defp backup(path) do
+    ts =
+      DateTime.utc_now()
+      |> DateTime.to_iso8601(:basic)
+      |> String.replace(~r/\.\d+Z$/, "Z")
+
+    File.rename!(path, "#{path}.backup.#{ts}")
+  end
+
+  defp remove_with_restore(path) do
+    File.rm!(path)
+
+    case latest_backup(path) do
+      nil -> :ok
+      backup -> File.rename!(backup, path)
+    end
+  end
+
+  defp latest_backup(path) do
+    (path <> ".backup.*")
+    |> Path.wildcard()
+    |> Enum.sort()
+    |> List.last()
+  end
+
+  defp shim(hook) do
+    """
+    #!/usr/bin/env sh
+    #{@marker}
+    exec mix git_hoox.run #{hook} "$@"
+    """
+  end
+end

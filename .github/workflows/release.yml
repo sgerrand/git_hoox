@@ -1,0 +1,16 @@
+name: Release
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  release-please:
+    uses: release-baton/release-baton/.github/workflows/release-please.yml@71f10a09c0b5161420efe386fdfa657f9f7d5688 # v1.1.1
+    secrets:
+      client-id: ${{ secrets.RELEASE_BATON_CLIENT_ID }}
+      app-private-key: ${{ secrets.RELEASE_BATON_PRIVATE_KEY }}
