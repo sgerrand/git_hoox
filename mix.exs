@@ -62,7 +62,7 @@ defmodule GitHoox.MixProject do
     [
       main: "GitHoox",
       source_ref: "v#{@version}",
-      extras: ["README.md", "CHANGELOG.md"],
+      extras: ["CHANGELOG.md", "LICENSE", "README.md"],
       groups_for_modules: [
         Core: [GitHoox, GitHoox.Hook, GitHoox.Runner, GitHoox.Config],
         Git: [GitHoox.Git, GitHoox.Installer],

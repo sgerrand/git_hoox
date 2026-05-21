@@ -217,7 +217,7 @@ removed shim, the most recent backup is restored.
 GitHoox is pre-1.0. The public API surface (`GitHoox`, `GitHoox.Hook`,
 `GitHoox.Config`, `GitHoox.Git`, `GitHoox.Installer`, the built-in hook modules,
 and the `mix git_hoox.*` tasks) follows semver from 0.1.0 onward, but internals
-under `GitHoox.Config.Schema` and similar may change without notice.
+under modules marked `@moduledoc false` (e.g. config schema) may change without notice.
 
 Documentation is published to [HexDocs](https://hexdocs.pm/git_hoox).
 

@@ -1,5 +1,10 @@
 defmodule GitHoox.Config.Error do
-  @moduledoc false
+  @moduledoc """
+  Structured errors returned by `GitHoox.Config.load/1`.
+
+  Errors are tagged tuples (see `t:t/0`) and can be turned into a
+  human-readable string with `format/1`.
+  """
 
   @type t ::
           {:missing_config, Path.t()}
