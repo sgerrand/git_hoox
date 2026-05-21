@@ -1,0 +1,5 @@
+# Please see the documentation for all configuration options:
+# https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners#codeowners-syntax
+
+# Default owner for everything in this repository.
+*  @sgerrand
