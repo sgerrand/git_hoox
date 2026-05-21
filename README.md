@@ -34,7 +34,12 @@ existing user-authored hook. Pass `--force` to back up the existing hook
 ```sh
 mix git_hoox.install --force
 mix git_hoox.install --dry-run    # show the install plan, write nothing
+mix git_hoox.install --scaffold   # also write a starter .git_hoox.exs
 ```
+
+Pass `--scaffold` (or `-s`) on first install to drop a starter
+`.git_hoox.exs` at the repo root. The scaffolder refuses to overwrite an
+existing config unless `--force` is set.
 
 ## Configuration
 

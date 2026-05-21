@@ -4,17 +4,18 @@ defmodule Mix.Tasks.GitHoox.Install do
   @moduledoc """
   Install git_hoox shims.
 
-      mix git_hoox.install            # refuse if user hook exists
-      mix git_hoox.install --force    # backup + overwrite
-      mix git_hoox.install --dry-run  # plan only
+      mix git_hoox.install              # refuse if user hook exists
+      mix git_hoox.install --force      # backup + overwrite shims (and config)
+      mix git_hoox.install --dry-run    # plan only, write nothing
+      mix git_hoox.install --scaffold   # also write a starter .git_hoox.exs
 
   Detects `core.hooksPath` and worktrees via `git rev-parse --git-path hooks`.
   """
 
   use Mix.Task
 
-  @switches [force: :boolean, dry_run: :boolean]
-  @aliases [f: :force, n: :dry_run]
+  @switches [force: :boolean, dry_run: :boolean, scaffold: :boolean]
+  @aliases [f: :force, n: :dry_run, s: :scaffold]
 
   @impl Mix.Task
   @spec run([String.t()]) :: :ok
@@ -22,8 +23,13 @@ defmodule Mix.Tasks.GitHoox.Install do
     {opts, _, _} = OptionParser.parse(argv, switches: @switches, aliases: @aliases)
 
     case GitHoox.Installer.install(opts) do
-      {:ok, plan} -> report(plan, opts)
-      {:error, reason} -> Mix.raise(format_error(reason))
+      {:ok, plan} ->
+        report(plan, opts)
+        maybe_scaffold(opts)
+        :ok
+
+      {:error, reason} ->
+        Mix.raise(format_error(reason))
     end
   end
 
@@ -39,6 +45,26 @@ defmodule Mix.Tasks.GitHoox.Install do
 
   defp print_plan_entry({_hook, path, action}) do
     Mix.shell().info("[#{action}] #{path}")
+  end
+
+  defp maybe_scaffold(opts) do
+    cond do
+      not Keyword.get(opts, :scaffold, false) ->
+        :ok
+
+      Keyword.get(opts, :dry_run, false) ->
+        Mix.shell().info("[scaffold] .git_hoox.exs (dry-run, not written)")
+        :ok
+
+      true ->
+        case GitHoox.Installer.scaffold(opts) do
+          {:ok, path} ->
+            Mix.shell().info("git_hoox: wrote #{path}")
+
+          {:error, {:config_exists, path}} ->
+            Mix.shell().error("git_hoox: #{path} already exists. Re-run with --force to overwrite.")
+        end
+    end
   end
 
   defp format_error({:exists, path, msg}), do: "#{msg}\n  #{path}"

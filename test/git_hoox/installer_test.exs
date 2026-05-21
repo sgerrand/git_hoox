@@ -76,6 +76,54 @@ defmodule GitHoox.InstallerTest do
     refute File.exists?(Path.join(dir, ".git/hooks/pre-commit"))
   end
 
+  test "scaffold writes .git_hoox.exs at repo root", %{repo: dir} do
+    in_repo(dir, fn ->
+      assert {:ok, path} = Installer.scaffold()
+      assert String.ends_with?(path, ".git_hoox.exs")
+    end)
+
+    content = File.read!(Path.join(dir, ".git_hoox.exs"))
+    assert content =~ "GitHoox.Hooks.Format"
+    assert content =~ "GitHoox.Hooks.Credo"
+    assert content =~ "GitHoox.Hooks.Test"
+    assert content =~ "pre_commit:"
+    assert content =~ "pre_push:"
+  end
+
+  test "scaffold refuses to overwrite existing config", %{repo: dir} do
+    path = Path.join(dir, ".git_hoox.exs")
+    File.write!(path, "# user config")
+
+    in_repo(dir, fn ->
+      assert {:error, {:config_exists, returned}} = Installer.scaffold()
+      assert String.ends_with?(returned, ".git_hoox.exs")
+    end)
+
+    assert File.read!(path) == "# user config"
+  end
+
+  test "scaffold --force overwrites existing config", %{repo: dir} do
+    path = Path.join(dir, ".git_hoox.exs")
+    File.write!(path, "# user config")
+
+    in_repo(dir, fn ->
+      assert {:ok, _} = Installer.scaffold(force: true)
+    end)
+
+    refute File.read!(path) =~ "user config"
+    assert File.read!(path) =~ "GitHoox.Hooks.Format"
+  end
+
+  test "scaffolded config parses cleanly via Config.load", %{repo: dir} do
+    in_repo(dir, fn ->
+      assert {:ok, _} = Installer.scaffold()
+      assert {:ok, config} = GitHoox.Config.load()
+      assert config.parallel == false
+      assert Keyword.has_key?(config.hooks, :pre_commit)
+      assert Keyword.has_key?(config.hooks, :pre_push)
+    end)
+  end
+
   test "uninstall removes only managed shims", %{repo: dir} do
     user_hook = Path.join(dir, ".git/hooks/commit-msg")
     File.mkdir_p!(Path.dirname(user_hook))

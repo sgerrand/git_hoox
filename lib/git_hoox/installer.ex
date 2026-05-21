@@ -23,7 +23,25 @@ defmodule GitHoox.Installer do
           :not_a_git_repo
           | {:exists, Path.t(), String.t()}
 
+  @type scaffold_error :: {:config_exists, Path.t()}
+
   @type plan_entry :: {String.t(), Path.t(), action()}
+
+  @config_filename ".git_hoox.exs"
+
+  @default_config """
+  %{
+    hooks: [
+      pre_commit: [
+        {GitHoox.Hooks.Format, []},
+        {GitHoox.Hooks.Credo, []}
+      ],
+      pre_push: [
+        {GitHoox.Hooks.Test, scope: :stale}
+      ]
+    ]
+  }
+  """
 
   @doc """
   Install hook shims into `.git/hooks/`.
@@ -42,6 +60,30 @@ defmodule GitHoox.Installer do
          :ok <- File.mkdir_p(dir),
          {:ok, plan} <- plan(dir, force?) do
       execute(plan, dry?)
+    end
+  end
+
+  @doc """
+  Write a starter `.git_hoox.exs` at the repo root.
+
+  ## Options
+
+    * `:force` — overwrite existing config. Default `false`.
+
+  Returns `{:ok, path}` on success or `{:error, {:config_exists, path}}`
+  if the file already exists and `:force` is false.
+  """
+  @spec scaffold(keyword()) :: {:ok, Path.t()} | {:error, scaffold_error()}
+  def scaffold(opts \\ []) do
+    {:ok, root} = Git.toplevel()
+    path = Path.join(root, @config_filename)
+    force? = Keyword.get(opts, :force, false)
+
+    if File.exists?(path) and not force? do
+      {:error, {:config_exists, path}}
+    else
+      File.write!(path, @default_config)
+      {:ok, path}
     end
   end
 
