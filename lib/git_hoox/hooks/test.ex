@@ -15,6 +15,8 @@ defmodule GitHoox.Hooks.Test do
 
   @behaviour GitHoox.Hook
 
+  alias GitHoox.Hooks.Helpers
+
   @impl true
   @spec default_opts() :: keyword()
   def default_opts do
@@ -31,7 +33,9 @@ defmodule GitHoox.Hooks.Test do
         _ -> ["test"]
       end
 
-    case System.cmd("mix", args, stderr_to_stdout: true) do
+    cmd_opts = [stderr_to_stdout: true, env: Helpers.env_opt(opts)]
+
+    case System.cmd("mix", args, cmd_opts) do
       {_, 0} -> :ok
       {out, code} -> {:error, {code, out}}
     end

@@ -14,6 +14,8 @@ defmodule GitHoox.Hooks.Format do
 
   @behaviour GitHoox.Hook
 
+  alias GitHoox.Hooks.Helpers
+
   @impl true
   @spec default_opts() :: keyword()
   def default_opts, do: [stage_fixed: true, files: ~w(*.ex *.exs *.heex)]
@@ -30,7 +32,9 @@ defmodule GitHoox.Hooks.Format do
         ["format" | files]
       end
 
-    case System.cmd("mix", args, stderr_to_stdout: true) do
+    cmd_opts = [stderr_to_stdout: true, env: Helpers.env_opt(opts)]
+
+    case System.cmd("mix", args, cmd_opts) do
       {_, 0} ->
         {:ok, GitHoox.Git.changed_in_worktree(files)}
 

@@ -17,6 +17,8 @@ defmodule GitHoox.Hooks.Shell do
 
   @behaviour GitHoox.Hook
 
+  alias GitHoox.Hooks.Helpers
+
   @impl true
   @spec default_opts() :: keyword()
   def default_opts, do: [stage_fixed: false]
@@ -28,8 +30,9 @@ defmodule GitHoox.Hooks.Shell do
       {:ok, template} ->
         cmd = expand(template, files)
         shell = Keyword.get(opts, :shell, "sh")
+        cmd_opts = [stderr_to_stdout: true, env: Helpers.env_opt(opts)]
 
-        case System.cmd(shell, ["-c", cmd], stderr_to_stdout: true) do
+        case System.cmd(shell, ["-c", cmd], cmd_opts) do
           {_, 0} -> :ok
           {out, code} -> {:error, {code, out}}
         end

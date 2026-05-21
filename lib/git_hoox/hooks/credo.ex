@@ -14,6 +14,8 @@ defmodule GitHoox.Hooks.Credo do
 
   @behaviour GitHoox.Hook
 
+  alias GitHoox.Hooks.Helpers
+
   @impl true
   @spec default_opts() :: keyword()
   def default_opts do
@@ -27,8 +29,9 @@ defmodule GitHoox.Hooks.Credo do
   def run(files, opts) do
     strict = if Keyword.get(opts, :strict, false), do: ["--strict"], else: []
     args = ["credo"] ++ strict ++ ["--files-included" | files]
+    cmd_opts = [stderr_to_stdout: true, env: Helpers.env_opt(opts)]
 
-    case System.cmd("mix", args, stderr_to_stdout: true) do
+    case System.cmd("mix", args, cmd_opts) do
       {_, 0} -> :ok
       {out, code} -> {:error, {code, out}}
     end
