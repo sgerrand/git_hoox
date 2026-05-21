@@ -31,5 +31,3 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * add CLAUDE.md with commands and architecture overview ([faa3157](https://github.com/sgerrand/git_hoox/commit/faa31576a3d32e4cb64bf2827ac063343f71a0cc))
 * add GitHub funding metadata ([971bcb5](https://github.com/sgerrand/git_hoox/commit/971bcb51f631e71a7f8fc19148cc9b8a6382a750))
 * fix mix docs --warnings-as-errors ([406ee8e](https://github.com/sgerrand/git_hoox/commit/406ee8e5e17210fbb3ac1adb3d0de49a249f0169))
-
-## [Unreleased]
