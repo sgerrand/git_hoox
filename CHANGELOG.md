@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Bug Fixes
 
+* **ci:** read version from mix.exs without booting mix ([02428fb](https://github.com/sgerrand/git_hoox/commit/02428fb639f64eead86472bc2f42c8c3d5686d43))
 * clear dialyzer warnings on uninstall path ([30ee293](https://github.com/sgerrand/git_hoox/commit/30ee293a751fc759c39965f3df25dd219c4e6cc5))
 
 
