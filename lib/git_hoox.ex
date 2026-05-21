@@ -59,9 +59,12 @@ defmodule GitHoox do
   @doc """
   Execute all hooks configured for `stage`.
 
-  Reads `.git_hoox.exs`, resolves staged files, dispatches per hook.
-  Returns `:ok` if all hooks pass or skip, `{:error, failures}` otherwise.
+  `args` are the positional arguments the git shim received (e.g. the
+  commit message file path for `commit_msg`). `stdin` is the raw input
+  passed to the shim, only meaningful for `pre_push`.
   """
-  @spec run(stage()) :: :ok | {:error, [{module(), term()}]}
-  def run(stage), do: GitHoox.Runner.run(stage)
+  @spec run(stage(), [String.t()], String.t() | nil) ::
+          :ok | {:error, [{module(), term()}]}
+  def run(stage, args \\ [], stdin \\ nil),
+    do: GitHoox.Runner.run(stage, args, stdin)
 end

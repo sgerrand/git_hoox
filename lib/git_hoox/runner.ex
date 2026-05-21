@@ -2,9 +2,9 @@ defmodule GitHoox.Runner do
   @moduledoc """
   Execute hooks for a given stage.
 
-  Resolves staged files, filters per hook's `:files` glob, dispatches
-  serially or in parallel based on config, and re-stages mutated files
-  when `stage_fixed: true`.
+  Resolves the file set per stage, filters per hook's `:files` glob,
+  dispatches serially or in parallel, enforces per-hook timeouts, and
+  re-stages mutated files when `stage_fixed: true`.
   """
 
   alias GitHoox.Config
@@ -17,13 +17,15 @@ defmodule GitHoox.Runner do
   @doc """
   Run all hooks configured for `stage`.
 
-  Returns `:ok` if all hooks succeed (or skip). Returns `{:error, failures}`
-  listing modules that failed and their reasons.
+  `args` are the positional arguments the git shim received (e.g. the
+  commit message file path for `commit_msg`). `stdin` is the raw input
+  passed to the shim, used for `pre_push`.
   """
-  @spec run(GitHoox.stage()) :: :ok | {:error, [hook_outcome()]}
-  def run(stage) do
+  @spec run(GitHoox.stage(), [String.t()], String.t() | nil) ::
+          :ok | {:error, [hook_outcome()]}
+  def run(stage, args \\ [], stdin \\ nil) do
     with {:ok, config} <- Config.load(),
-         {:ok, files} <- staged(stage) do
+         {:ok, files} <- files_for_stage(stage, args, stdin) do
       entries =
         config.hooks
         |> Keyword.get(stage, [])
@@ -37,8 +39,15 @@ defmodule GitHoox.Runner do
     end
   end
 
-  defp staged(:pre_commit), do: Git.staged_files()
-  defp staged(_), do: Git.all_files()
+  defp files_for_stage(:pre_commit, _args, _stdin), do: Git.staged_files()
+  defp files_for_stage(:commit_msg, [path | _], _), do: {:ok, [path]}
+  defp files_for_stage(:prepare_commit_msg, [path | _], _), do: {:ok, [path]}
+  defp files_for_stage(:post_commit, _args, _stdin), do: Git.files_in_head()
+  defp files_for_stage(:post_merge, _args, _stdin), do: Git.merge_files()
+  defp files_for_stage(:post_checkout, [from, to | _], _), do: Git.diff_files(from, to)
+  defp files_for_stage(:pre_rebase, _args, _stdin), do: {:ok, []}
+  defp files_for_stage(:pre_push, _args, stdin), do: Git.push_files(stdin)
+  defp files_for_stage(_other, _args, _stdin), do: Git.all_files()
 
   defp filter_skipped(entries, skip_env) do
     cond do
@@ -121,9 +130,21 @@ defmodule GitHoox.Runner do
     if matched == [] do
       :skip
     else
+      timeout = Keyword.get(opts, :timeout, 30_000)
+
       matched
-      |> mod.run(opts)
+      |> invoke_with_timeout(mod, opts, timeout)
       |> maybe_restage(opts)
+    end
+  end
+
+  defp invoke_with_timeout(files, mod, opts, timeout) do
+    task = Task.async(fn -> mod.run(files, opts) end)
+
+    case Task.yield(task, timeout) || Task.shutdown(task, :brutal_kill) do
+      {:ok, result} -> result
+      nil -> {:error, {:timeout, timeout}}
+      {:exit, reason} -> {:error, {:crashed, reason}}
     end
   end
 

@@ -76,6 +76,68 @@ defmodule GitHoox.Git do
     end
   end
 
+  @doc "Files touched by the HEAD commit (used for post-commit)."
+  @spec files_in_head() :: {:ok, [GitHoox.path()]} | git_error()
+  def files_in_head do
+    cmd(["show", "--name-only", "--pretty=format:", "-z", "HEAD"])
+    |> parse_z()
+  end
+
+  @doc "Files changed by the last merge (used for post-merge)."
+  @spec merge_files() :: {:ok, [GitHoox.path()]} | git_error()
+  def merge_files do
+    cmd(["diff-tree", "-r", "--name-only", "--no-commit-id", "-z", "ORIG_HEAD", "HEAD"])
+    |> parse_z()
+  end
+
+  @doc "Files changed between two refs (used for post-checkout)."
+  @spec diff_files(String.t(), String.t()) :: {:ok, [GitHoox.path()]} | git_error()
+  def diff_files(from, to) do
+    cmd(["diff", "--name-only", "-z", from, to]) |> parse_z()
+  end
+
+  @doc """
+  Parse pre-push stdin and return files changed across all pushed refs.
+
+  Stdin format per `githooks(5)`:
+  `<local_ref> <local_sha> <remote_ref> <remote_sha>` per line.
+  """
+  @spec push_files(String.t() | nil) :: {:ok, [GitHoox.path()]}
+  def push_files(nil), do: {:ok, []}
+  def push_files(""), do: {:ok, []}
+
+  def push_files(stdin) when is_binary(stdin) do
+    files =
+      stdin
+      |> String.split("\n", trim: true)
+      |> Enum.flat_map(&push_ref_files/1)
+      |> Enum.uniq()
+
+    {:ok, files}
+  end
+
+  defp push_ref_files(line) do
+    case String.split(line, " ", trim: true) do
+      [_local_ref, local_sha, _remote_ref, remote_sha] ->
+        zero = String.duplicate("0", String.length(local_sha))
+
+        args =
+          if remote_sha == zero do
+            ["show", "--name-only", "--pretty=format:", "-z", local_sha]
+          else
+            ["diff", "--name-only", "-z", "#{remote_sha}..#{local_sha}"]
+          end
+
+        case cmd(args) do
+          {:ok, out} -> split_z(out)
+          _ -> []
+        end
+
+      _ ->
+        []
+    end
+  end
+
   defp cmd(args) do
     case System.cmd("git", args, stderr_to_stdout: true) do
       {out, 0} -> {:ok, out}

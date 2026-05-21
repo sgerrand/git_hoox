@@ -15,10 +15,11 @@ defmodule Mix.Tasks.GitHoox.Run do
 
   @impl Mix.Task
   @spec run([String.t()]) :: :ok | no_return()
-  def run([stage | _rest]) do
+  def run([stage | args]) do
     atom = stage |> String.replace("-", "_") |> String.to_atom()
+    stdin = read_stdin(atom)
 
-    case GitHoox.run(atom) do
+    case GitHoox.run(atom, args, stdin) do
       :ok ->
         :ok
 
@@ -30,7 +31,25 @@ defmodule Mix.Tasks.GitHoox.Run do
 
   def run([]), do: Mix.raise("Usage: mix git_hoox.run <stage>")
 
-  defp print_failure({mod, {:error, {code, out}}}) do
+  defp read_stdin(:pre_push) do
+    case IO.read(:stdio, :eof) do
+      :eof -> nil
+      data when is_binary(data) -> data
+      _ -> nil
+    end
+  end
+
+  defp read_stdin(_), do: nil
+
+  defp print_failure({mod, {:error, {:timeout, ms}}}) do
+    IO.puts(:stderr, "#{inspect(mod)} timed out after #{ms}ms")
+  end
+
+  defp print_failure({mod, {:error, {:crashed, reason}}}) do
+    IO.puts(:stderr, "#{inspect(mod)} crashed: #{inspect(reason)}")
+  end
+
+  defp print_failure({mod, {:error, {code, out}}}) when is_integer(code) do
     IO.puts(:stderr, "#{inspect(mod)} failed (exit #{code}):\n#{out}")
   end
 

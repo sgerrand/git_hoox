@@ -56,4 +56,39 @@ defmodule GitHoox.TestHooks do
       :ok
     end
   end
+
+  defmodule RecordFiles do
+    @moduledoc false
+    @behaviour GitHoox.Hook
+
+    def start_link, do: Agent.start_link(fn -> [] end, name: __MODULE__)
+    def captured, do: Agent.get(__MODULE__, & &1)
+
+    def reset do
+      if Process.whereis(__MODULE__), do: Agent.update(__MODULE__, fn _ -> [] end)
+    end
+
+    @impl true
+    def default_opts, do: [files: ["**/*"]]
+
+    @impl true
+    def run(files, _opts) do
+      Agent.update(__MODULE__, fn _ -> files end)
+      :ok
+    end
+  end
+
+  defmodule Slow do
+    @moduledoc false
+    @behaviour GitHoox.Hook
+
+    @impl true
+    def default_opts, do: [files: ["**/*"]]
+
+    @impl true
+    def run(_files, opts) do
+      Process.sleep(Keyword.get(opts, :sleep_ms, 1_000))
+      :ok
+    end
+  end
 end
