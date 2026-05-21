@@ -6,7 +6,6 @@
       "package-name": "git_hoox",
       "include-component-in-tag": false,
       "include-v-in-tag": true,
-      "release-as": "0.1.0",
       "changelog-sections": [
         { "type": "feat",     "section": "Features" },
         { "type": "fix",      "section": "Bug Fixes" },
