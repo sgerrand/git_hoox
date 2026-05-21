@@ -84,9 +84,8 @@ defmodule GitHoox.Config do
 
   defp validate_entry(stage, {mod, opts}) when is_atom(mod) and is_list(opts) do
     with :ok <- ensure_loaded(stage, mod),
-         :ok <- ensure_behaviour(stage, mod),
-         :ok <- validate_opts(stage, mod, opts) do
-      :ok
+         :ok <- ensure_behaviour(stage, mod) do
+      validate_opts(stage, mod, opts)
     end
   end
 

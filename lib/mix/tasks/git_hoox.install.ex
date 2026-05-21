@@ -22,23 +22,25 @@ defmodule Mix.Tasks.GitHoox.Install do
     {opts, _, _} = OptionParser.parse(argv, switches: @switches, aliases: @aliases)
 
     case GitHoox.Installer.install(opts) do
-      {:ok, plan} ->
-        if Keyword.get(opts, :dry_run, false) do
-          Enum.each(plan, fn {_hook, path, action} ->
-            Mix.shell().info("[#{action}] #{path}")
-          end)
-        else
-          Mix.shell().info("git_hoox installed (#{length(plan)} shims)")
-        end
-
-        :ok
-
-      {:error, reason} ->
-        Mix.raise(format_error(reason))
+      {:ok, plan} -> report(plan, opts)
+      {:error, reason} -> Mix.raise(format_error(reason))
     end
+  end
+
+  defp report(plan, opts) do
+    if Keyword.get(opts, :dry_run, false) do
+      Enum.each(plan, &print_plan_entry/1)
+    else
+      Mix.shell().info("git_hoox installed (#{length(plan)} shims)")
+    end
+
+    :ok
+  end
+
+  defp print_plan_entry({_hook, path, action}) do
+    Mix.shell().info("[#{action}] #{path}")
   end
 
   defp format_error({:exists, path, msg}), do: "#{msg}\n  #{path}"
   defp format_error(:not_a_git_repo), do: "Not inside a git repository."
-  defp format_error(other), do: inspect(other)
 end

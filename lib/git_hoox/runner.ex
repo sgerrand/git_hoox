@@ -7,7 +7,9 @@ defmodule GitHoox.Runner do
   when `stage_fixed: true`.
   """
 
-  alias GitHoox.{Config, Git}
+  alias GitHoox.Config
+  alias GitHoox.Config.Error, as: ConfigError
+  alias GitHoox.Git
 
   @typedoc "One hook's exit summary."
   @type hook_outcome :: {module(), GitHoox.hook_result()}
@@ -21,13 +23,16 @@ defmodule GitHoox.Runner do
   @spec run(GitHoox.stage()) :: :ok | {:error, [hook_outcome()]}
   def run(stage) do
     with {:ok, config} <- Config.load(),
-         entries = Keyword.get(config.hooks, stage, []),
-         {:ok, files} <- staged(stage),
-         entries = filter_skipped(entries, config.skip_env) do
+         {:ok, files} <- staged(stage) do
+      entries =
+        config.hooks
+        |> Keyword.get(stage, [])
+        |> filter_skipped(config.skip_env)
+
       execute(entries, files, config)
     else
       {:error, reason} ->
-        IO.puts(:stderr, GitHoox.Config.Error.format(reason))
+        IO.puts(:stderr, ConfigError.format(reason))
         {:error, [{:config, reason}]}
     end
   end
