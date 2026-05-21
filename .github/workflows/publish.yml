@@ -33,7 +33,7 @@ jobs:
       - name: Verify tag matches mix.exs version
         run: |
           TAG="${{ github.event.release.tag_name }}"
-          MIX_VERSION=$(mix run --no-start --no-deps-check -e 'IO.puts(Mix.Project.config()[:version])')
+          MIX_VERSION=$(grep -E '^\s*@version\s+"' mix.exs | head -1 | sed -E 's/.*"([^"]+)".*/\1/')
           if [ "v$MIX_VERSION" != "$TAG" ]; then
             echo "Tag $TAG does not match mix.exs v$MIX_VERSION"
             exit 1
