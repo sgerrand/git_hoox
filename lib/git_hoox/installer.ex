@@ -46,17 +46,21 @@ defmodule GitHoox.Installer do
   end
 
   @doc "Remove managed shims. Restore latest backup if present."
-  @spec uninstall(keyword()) :: {:ok, non_neg_integer()} | {:error, install_error()}
+  @spec uninstall(keyword()) :: {:ok, non_neg_integer()}
   def uninstall(_opts \\ []) do
-    with {:ok, dir} <- Git.hooks_dir() do
-      count =
-        @hooks
-        |> Enum.map(&Path.join(dir, &1))
-        |> Enum.filter(&managed?/1)
-        |> Enum.map(&remove_with_restore/1)
-        |> Enum.count()
+    case Git.hooks_dir() do
+      {:ok, dir} ->
+        count =
+          @hooks
+          |> Enum.map(&Path.join(dir, &1))
+          |> Enum.filter(&managed?/1)
+          |> Enum.map(&remove_with_restore/1)
+          |> Enum.count()
 
-      {:ok, count}
+        {:ok, count}
+
+      {:error, _} ->
+        {:ok, 0}
     end
   end
 

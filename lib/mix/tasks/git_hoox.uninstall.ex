@@ -11,13 +11,8 @@ defmodule Mix.Tasks.GitHoox.Uninstall do
   @impl Mix.Task
   @spec run([String.t()]) :: :ok
   def run(_argv) do
-    case GitHoox.Installer.uninstall() do
-      {:ok, count} ->
-        Mix.shell().info("git_hoox: removed #{count} shim(s)")
-        :ok
-
-      {:error, reason} ->
-        Mix.raise(inspect(reason))
-    end
+    {:ok, count} = GitHoox.Installer.uninstall()
+    Mix.shell().info("git_hoox: removed #{count} shim(s)")
+    :ok
   end
 end
