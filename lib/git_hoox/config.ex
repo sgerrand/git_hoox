@@ -107,8 +107,7 @@ defmodule GitHoox.Config do
       :ok
     else
       {:error,
-       {:invalid_hook_module, stage, mod,
-        "missing run/2 — does it implement GitHoox.Hook?"}}
+       {:invalid_hook_module, stage, mod, "missing run/2 — does it implement GitHoox.Hook?"}}
     end
   end
 
