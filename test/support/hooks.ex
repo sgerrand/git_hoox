@@ -108,4 +108,12 @@ defmodule GitHoox.TestHooks do
       end
     end
   end
+
+  defmodule NoDefaults do
+    @moduledoc false
+    @behaviour GitHoox.Hook
+
+    @impl true
+    def run(_files, _opts), do: :ok
+  end
 end

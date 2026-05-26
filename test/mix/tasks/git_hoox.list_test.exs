@@ -64,4 +64,27 @@ defmodule Mix.Tasks.GitHoox.ListTest do
       end)
     end
   end
+
+  test "empty hooks map prints '(no hooks configured)'", %{repo: dir} do
+    write_config(dir, "%{hooks: []}")
+    out = run_task(dir)
+    assert out =~ "(no hooks configured)"
+  end
+
+  test "stage with empty entry list prints '(none)'", %{repo: dir} do
+    write_config(dir, "%{hooks: [pre_commit: []]}")
+    out = run_task(dir)
+    assert out =~ "pre_commit:"
+    assert out =~ "(none)"
+  end
+
+  test "hook without default_opts/0 prints with only user opts", %{repo: dir} do
+    write_config(dir, """
+    %{hooks: [pre_commit: [{GitHoox.TestHooks.NoDefaults, [files: ["**/*"]]}]]}
+    """)
+
+    out = run_task(dir)
+    assert out =~ "NoDefaults"
+    assert out =~ ~s(files: ["**/*"])
+  end
 end
