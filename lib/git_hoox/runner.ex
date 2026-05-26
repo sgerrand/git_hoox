@@ -135,22 +135,40 @@ defmodule GitHoox.Runner do
       Telemetry.hook_span(stage, mod, 0, fn -> :skip end)
     else
       timeout = Keyword.get(opts, :timeout, 30_000)
-
-      Telemetry.hook_span(stage, mod, length(matched), fn ->
-        matched
-        |> invoke_with_timeout(mod, opts, timeout)
-        |> maybe_restage(opts)
-      end)
+      invoke_traced(matched, mod, opts, timeout, stage)
     end
   end
 
-  defp invoke_with_timeout(files, mod, opts, timeout) do
-    task = Task.async(fn -> mod.run(files, opts) end)
+  # Wraps the hook in a telemetry span that lets :exception events fire
+  # naturally on timeout/crash, then catches the propagated exit so the
+  # public Runner.run/3 contract continues to return {:error, _} values.
+  defp invoke_traced(matched, mod, opts, timeout, stage) do
+    Telemetry.hook_span(stage, mod, length(matched), fn ->
+      matched
+      |> invoke_with_timeout!(mod, opts, timeout)
+      |> maybe_restage(opts)
+    end)
+  catch
+    :exit, {:git_hoox_timeout, ms} -> {:error, {:timeout, ms}}
+    :exit, reason -> {:error, {:crashed, reason}}
+  end
 
-    case Task.yield(task, timeout) || Task.shutdown(task, :brutal_kill) do
-      {:ok, result} -> result
-      nil -> {:error, {:timeout, timeout}}
-      {:exit, reason} -> {:error, {:crashed, reason}}
+  defp invoke_with_timeout!(files, mod, opts, timeout) do
+    # Task.async links the spawned task to the caller. Without trap_exit the
+    # link kills this process the instant the hook raises, before Task.yield
+    # has a chance to return {:exit, reason}. Trap, restore on the way out.
+    prior_trap = Process.flag(:trap_exit, true)
+
+    try do
+      task = Task.async(fn -> mod.run(files, opts) end)
+
+      case Task.yield(task, timeout) || Task.shutdown(task, :brutal_kill) do
+        {:ok, result} -> result
+        nil -> exit({:git_hoox_timeout, timeout})
+        {:exit, reason} -> exit(reason)
+      end
+    after
+      Process.flag(:trap_exit, prior_trap)
     end
   end
 

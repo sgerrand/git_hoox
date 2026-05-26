@@ -100,10 +100,21 @@ ignore it, but it is reserved.
 and `[:git_hoox, :hook, :start | :stop | :exception]` events via
 `:telemetry.span/3`. No handler is attached by default; `GitHoox.Logger`
 is the reference handler (`GitHoox.Logger.attach/0`). Stage events log at
-`:info`/`:warning`; hook events log at `:debug`/`:warning`. The
-`Runner.run_one/3` flow always goes through `Telemetry.hook_span/4`, so a
-hook with no matched files still emits a `:skip` stop event — useful for
-verifying that a glob filtered out everything.
+`:info`/`:warning`; hook events log at `:debug`/`:warning`; hook exception
+events log at `:error`. The `Runner.run_one/3` flow always goes through
+`Telemetry.hook_span/4`, so a hook with no matched files still emits a
+`:skip` stop event — useful for verifying that a glob filtered out
+everything.
+
+Hook timeouts and crashes both surface as `[:git_hoox, :hook, :exception]`
+events: `Runner.invoke_with_timeout!/4` traps exits and reuses `exit/1`
+as the unwind mechanism — a timeout exits with `{:git_hoox_timeout, ms}`,
+a raise/throw/exit in the hook propagates the underlying reason. The
+caller's outer `try ... catch :exit, reason ->` in `invoke_traced/5`
+converts the exit back into a `{:error, {:timeout, ms}}` or
+`{:error, {:crashed, reason}}` so the public `Runner.run/3` contract is
+unchanged. Hooks that simply return `{:error, _}` continue to emit
+`:stop` (not `:exception`).
 
 ## Tests
 

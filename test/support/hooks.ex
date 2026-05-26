@@ -91,4 +91,21 @@ defmodule GitHoox.TestHooks do
       :ok
     end
   end
+
+  defmodule Raiser do
+    @moduledoc false
+    @behaviour GitHoox.Hook
+
+    @impl true
+    def default_opts, do: [files: ["**/*"]]
+
+    @impl true
+    def run(_files, opts) do
+      case Keyword.get(opts, :raise_as, :error) do
+        :error -> raise "raiser hook boom"
+        :throw -> throw(:raiser_boom)
+        :exit -> exit(:raiser_boom)
+      end
+    end
+  end
 end

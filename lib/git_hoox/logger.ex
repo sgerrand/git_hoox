@@ -27,7 +27,8 @@ defmodule GitHoox.Logger do
 
   @events [
     [:git_hoox, :stage, :stop],
-    [:git_hoox, :hook, :stop]
+    [:git_hoox, :hook, :stop],
+    [:git_hoox, :hook, :exception]
   ]
 
   @doc "Attach the handler."
@@ -65,6 +66,14 @@ defmodule GitHoox.Logger do
       :error -> Logger.warning(msg)
       _ -> Logger.debug(msg)
     end
+  end
+
+  def handle([:git_hoox, :hook, :exception], %{duration: d}, meta, _) do
+    %{module: mod, kind: kind, reason: reason} = meta
+
+    Logger.error(
+      "[git_hoox]   #{inspect(mod)} → exception (#{format_duration(d)}) #{kind}: #{inspect(reason)}"
+    )
   end
 
   defp format_duration(native) do
