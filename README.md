@@ -12,6 +12,7 @@ runtime to run hooks.
 
 Add `git_hoox` to your dev dependencies in `mix.exs`:
 
+<!-- x-release-please-start-version -->
 ```elixir
 def deps do
   [
@@ -19,6 +20,8 @@ def deps do
   ]
 end
 ```
+<!-- x-release-please-end -->
+
 
 Fetch and install the git hook shims:
 
