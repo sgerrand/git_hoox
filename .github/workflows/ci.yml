@@ -21,7 +21,7 @@ jobs:
 
       - uses: erlef/setup-beam@fc68ffb90438ef2936bbb3251622353b3dcb2f93 # v1.24.0
         with:
-          otp-version: "27"
+          otp-version: "28"
           elixir-version: "1.19"
 
       - uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
@@ -29,9 +29,9 @@ jobs:
           path: |
             deps
             _build
-          key: mix-${{ runner.os }}-1.19-27-${{ hashFiles('**/mix.lock') }}
+          key: mix-${{ runner.os }}-1.19-28-${{ hashFiles('**/mix.lock') }}
           restore-keys: |
-            mix-${{ runner.os }}-1.19-27-
+            mix-${{ runner.os }}-1.19-28-
 
       - run: mix deps.get
       - run: mix format --check-formatted
@@ -50,7 +50,7 @@ jobs:
           - elixir: "1.18"
             otp: "27"
           - elixir: "1.19"
-            otp: "27"
+            otp: "28"
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
@@ -79,7 +79,7 @@ jobs:
 
       - uses: erlef/setup-beam@fc68ffb90438ef2936bbb3251622353b3dcb2f93 # v1.24.0
         with:
-          otp-version: "27"
+          otp-version: "28"
           elixir-version: "1.19"
 
       - uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
@@ -87,16 +87,16 @@ jobs:
           path: |
             deps
             _build
-          key: mix-${{ runner.os }}-1.19-27-${{ hashFiles('**/mix.lock') }}
+          key: mix-${{ runner.os }}-1.19-28-${{ hashFiles('**/mix.lock') }}
           restore-keys: |
-            mix-${{ runner.os }}-1.19-27-
+            mix-${{ runner.os }}-1.19-28-
 
       - uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
         with:
           path: priv/plts
-          key: plt-${{ runner.os }}-1.19-27-${{ hashFiles('**/mix.lock') }}
+          key: plt-${{ runner.os }}-1.19-28-${{ hashFiles('**/mix.lock') }}
           restore-keys: |
-            plt-${{ runner.os }}-1.19-27-
+            plt-${{ runner.os }}-1.19-28-
 
       - run: mix deps.get
       - run: mix dialyzer --format github
@@ -109,7 +109,7 @@ jobs:
 
       - uses: erlef/setup-beam@fc68ffb90438ef2936bbb3251622353b3dcb2f93 # v1.24.0
         with:
-          otp-version: "27"
+          otp-version: "28"
           elixir-version: "1.19"
 
       - uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
@@ -117,9 +117,9 @@ jobs:
           path: |
             deps
             _build
-          key: mix-${{ runner.os }}-1.19-27-${{ hashFiles('**/mix.lock') }}
+          key: mix-${{ runner.os }}-1.19-28-${{ hashFiles('**/mix.lock') }}
           restore-keys: |
-            mix-${{ runner.os }}-1.19-27-
+            mix-${{ runner.os }}-1.19-28-
 
       - run: mix deps.get
       - run: mix docs --warnings-as-errors
