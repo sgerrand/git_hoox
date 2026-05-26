@@ -10,29 +10,26 @@ defmodule GitHoox.RunnerExceptionTest do
   end
 
   defp attach_collector(events) do
-    handler_id = "test-exc-#{System.unique_integer([:positive])}"
-    pid = self()
-
-    :telemetry.attach_many(
-      handler_id,
-      events,
-      fn ev, meas, meta, _ -> send(pid, {:telemetry, ev, meas, meta}) end,
-      nil
-    )
-
-    on_exit(fn -> :telemetry.detach(handler_id) end)
-    :ok
+    ref = :telemetry_test.attach_event_handlers(self(), events)
+    on_exit(fn -> :telemetry.detach(ref) end)
+    ref
   end
 
   setup do
-    attach_collector([
-      [:git_hoox, :hook, :start],
-      [:git_hoox, :hook, :stop],
-      [:git_hoox, :hook, :exception]
-    ])
+    ref =
+      attach_collector([
+        [:git_hoox, :hook, :start],
+        [:git_hoox, :hook, :stop],
+        [:git_hoox, :hook, :exception]
+      ])
+
+    %{ref: ref}
   end
 
-  test "hook that raises emits :exception (not :stop) and surfaces as :crashed", %{repo: dir} do
+  test "hook that raises emits :exception (not :stop) and surfaces as :crashed", %{
+    repo: dir,
+    ref: ref
+  } do
     write(dir, "lib/foo.ex", "x\n")
     stage(dir, ["lib/foo.ex"])
 
@@ -45,14 +42,14 @@ defmodule GitHoox.RunnerExceptionTest do
                Runner.run(:pre_commit)
     end)
 
-    assert_receive {:telemetry, [:git_hoox, :hook, :exception], %{duration: _},
+    assert_receive {[:git_hoox, :hook, :exception], ^ref, %{duration: _},
                     %{module: GitHoox.TestHooks.Raiser, kind: kind, reason: _, stacktrace: _}}
 
     assert kind in [:error, :exit]
-    refute_received {:telemetry, [:git_hoox, :hook, :stop], _, %{module: GitHoox.TestHooks.Raiser}}
+    refute_received {[:git_hoox, :hook, :stop], ^ref, _, %{module: GitHoox.TestHooks.Raiser}}
   end
 
-  test "hook that exits emits :exception with kind :exit", %{repo: dir} do
+  test "hook that exits emits :exception with kind :exit", %{repo: dir, ref: ref} do
     write(dir, "lib/foo.ex", "x\n")
     stage(dir, ["lib/foo.ex"])
 
@@ -65,11 +62,11 @@ defmodule GitHoox.RunnerExceptionTest do
                Runner.run(:pre_commit)
     end)
 
-    assert_receive {:telemetry, [:git_hoox, :hook, :exception], _,
+    assert_receive {[:git_hoox, :hook, :exception], ^ref, _,
                     %{module: GitHoox.TestHooks.Raiser, kind: :exit}}
   end
 
-  test "hook that throws emits :exception", %{repo: dir} do
+  test "hook that throws emits :exception", %{repo: dir, ref: ref} do
     write(dir, "lib/foo.ex", "x\n")
     stage(dir, ["lib/foo.ex"])
 
@@ -81,11 +78,10 @@ defmodule GitHoox.RunnerExceptionTest do
       assert {:error, _} = Runner.run(:pre_commit)
     end)
 
-    assert_receive {:telemetry, [:git_hoox, :hook, :exception], _,
-                    %{module: GitHoox.TestHooks.Raiser}}
+    assert_receive {[:git_hoox, :hook, :exception], ^ref, _, %{module: GitHoox.TestHooks.Raiser}}
   end
 
-  test "hook timeout emits :exception with the timeout reason", %{repo: dir} do
+  test "hook timeout emits :exception with the timeout reason", %{repo: dir, ref: ref} do
     write(dir, "lib/foo.ex", "x\n")
     stage(dir, ["lib/foo.ex"])
 
@@ -98,11 +94,11 @@ defmodule GitHoox.RunnerExceptionTest do
                Runner.run(:pre_commit)
     end)
 
-    assert_receive {:telemetry, [:git_hoox, :hook, :exception], _,
+    assert_receive {[:git_hoox, :hook, :exception], ^ref, _,
                     %{module: GitHoox.TestHooks.Slow, kind: :exit, reason: {:git_hoox_timeout, 50}}}
   end
 
-  test "normal :error return still emits :stop (not :exception)", %{repo: dir} do
+  test "normal :error return still emits :stop (not :exception)", %{repo: dir, ref: ref} do
     write(dir, "lib/foo.ex", "x\n")
     stage(dir, ["lib/foo.ex"])
 
@@ -114,10 +110,9 @@ defmodule GitHoox.RunnerExceptionTest do
       assert {:error, _} = Runner.run(:pre_commit)
     end)
 
-    assert_receive {:telemetry, [:git_hoox, :hook, :stop], _,
+    assert_receive {[:git_hoox, :hook, :stop], ^ref, _,
                     %{module: GitHoox.TestHooks.Fail, result: :error, error: "regular fail"}}
 
-    refute_received {:telemetry, [:git_hoox, :hook, :exception], _,
-                     %{module: GitHoox.TestHooks.Fail}}
+    refute_received {[:git_hoox, :hook, :exception], ^ref, _, %{module: GitHoox.TestHooks.Fail}}
   end
 end
