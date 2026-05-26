@@ -11,6 +11,8 @@ defmodule GitHoox.Hooks.Shell do
       * `{staged_files}` — `git diff --cached --name-only --diff-filter=ACMR`,
         looked up at call time regardless of stage.
       * `{all_files}` — `git ls-files`, looked up at call time.
+      * `{push_files}` — paths parsed from `pre_push` stdin. Only valid in
+        the `pre_push` stage; the hook returns an error if used elsewhere.
     * `:shell` — shell executable. Default `"sh"`.
 
   ## Defaults
@@ -19,13 +21,13 @@ defmodule GitHoox.Hooks.Shell do
 
   ## Behaviour with no matching files
 
-  When the template references `{files}` and the hook is invoked with an
-  empty file list, the hook returns `:ok` without running the shell command.
-  This avoids "empty argument" substitutions like `mix sobelow --exit Low ` —
-  a trailing space which `mix sobelow` interprets as "scan the entire
-  project", typically the opposite of what the caller wanted. The same skip
-  applies when `{staged_files}` is referenced and `git diff --cached` returns
-  no files.
+  When the template references `{files}` or `{push_files}` and the hook is
+  invoked with an empty file list, the hook returns `:ok` without running
+  the shell command. This avoids "empty argument" substitutions like
+  `mix sobelow --exit Low ` — a trailing space which `mix sobelow`
+  interprets as "scan the entire project", typically the opposite of what
+  the caller wanted. The same skip applies when `{staged_files}` is
+  referenced and `git diff --cached` returns no files.
 
   Note that `GitHoox.Runner` already skips hooks whose `:files` glob matches
   nothing, so this guard only fires when `Shell.run/2` is invoked directly
@@ -50,7 +52,7 @@ defmodule GitHoox.Hooks.Shell do
     run: [
       type: :string,
       required: true,
-      doc: "Command template. Supports {files}, {staged_files}, {all_files}."
+      doc: "Command template. Supports {files}, {staged_files}, {all_files}, {push_files}."
     ],
     shell: [
       type: :string,
@@ -61,7 +63,7 @@ defmodule GitHoox.Hooks.Shell do
 
   @impl true
   @spec default_opts() :: keyword()
-  def default_opts, do: [stage_fixed: false]
+  def default_opts, do: [stage_fixed: false, files: ["**/*"]]
 
   @impl true
   @spec opts_schema() :: keyword()
@@ -77,11 +79,26 @@ defmodule GitHoox.Hooks.Shell do
   end
 
   defp run_template(template, files, opts) do
-    if uses_token?(template, "{files}") and files == [] do
-      :ok
-    else
-      expand_and_exec(template, files, opts)
+    with :ok <- validate_tokens(template, opts) do
+      if empty_substitution?(template, files) do
+        :ok
+      else
+        expand_and_exec(template, files, opts)
+      end
     end
+  end
+
+  defp validate_tokens(template, opts) do
+    if uses_token?(template, "{push_files}") and Keyword.get(opts, :__stage__) != :pre_push do
+      {:error, "{push_files} token is only valid in the pre_push stage"}
+    else
+      :ok
+    end
+  end
+
+  defp empty_substitution?(template, files) do
+    files == [] and
+      (uses_token?(template, "{files}") or uses_token?(template, "{push_files}"))
   end
 
   defp expand_and_exec(template, files, opts) do
@@ -103,14 +120,23 @@ defmodule GitHoox.Hooks.Shell do
 
   defp expand(template, files) do
     with {:ok, t1} <- replace_files(template, files),
-         {:ok, t2} <- replace_staged_files(t1) do
-      replace_all_files(t2)
+         {:ok, t2} <- replace_push_files(t1, files),
+         {:ok, t3} <- replace_staged_files(t2) do
+      replace_all_files(t3)
     end
   end
 
   defp replace_files(template, files) do
     if uses_token?(template, "{files}") do
       {:ok, String.replace(template, "{files}", join(files))}
+    else
+      {:ok, template}
+    end
+  end
+
+  defp replace_push_files(template, files) do
+    if uses_token?(template, "{push_files}") do
+      {:ok, String.replace(template, "{push_files}", join(files))}
     else
       {:ok, template}
     end

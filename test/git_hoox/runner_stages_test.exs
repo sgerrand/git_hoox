@@ -117,6 +117,30 @@ defmodule GitHoox.RunnerStagesTest do
     assert [] = TestHooks.RecordFiles.captured()
   end
 
+  test "Shell hook on pre_push expands {push_files} from parsed stdin", %{repo: dir} do
+    write(dir, "lib/foo.ex", "x\n")
+    stage(dir, ["lib/foo.ex"])
+    commit(dir, "add foo")
+    base_sha = sh!(dir, ["rev-parse", "HEAD"]) |> String.trim()
+
+    write(dir, "lib/bar.ex", "y\n")
+    stage(dir, ["lib/bar.ex"])
+    commit(dir, "add bar")
+    head_sha = sh!(dir, ["rev-parse", "HEAD"]) |> String.trim()
+
+    stdin = "refs/heads/main #{head_sha} refs/heads/main #{base_sha}\n"
+
+    write_config(dir, """
+    %{hooks: [pre_push: [{GitHoox.Hooks.Shell, run: "echo {push_files} > out"}]]}
+    """)
+
+    in_repo(dir, fn ->
+      assert :ok = Runner.run(:pre_push, ["origin", "git@x:y.git"], stdin)
+    end)
+
+    assert File.read!(Path.join(dir, "out")) =~ "lib/bar.ex"
+  end
+
   test "pre_push parses stdin and lists changed files", %{repo: dir} do
     write(dir, "lib/foo.ex", "x\n")
     stage(dir, ["lib/foo.ex"])

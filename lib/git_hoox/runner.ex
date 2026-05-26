@@ -128,7 +128,7 @@ defmodule GitHoox.Runner do
   end
 
   defp run_one({mod, user_opts}, files, stage) do
-    opts = merge_defaults(mod, user_opts)
+    opts = mod |> merge_defaults(user_opts) |> Keyword.put(:__stage__, stage)
     matched = filter_files(files, Keyword.fetch!(opts, :files))
 
     if matched == [] do

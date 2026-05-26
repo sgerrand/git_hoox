@@ -143,21 +143,27 @@ Escape hatch for anything not covered by a built-in:
 
 Template variables expanded in `:run`:
 
-| Variable          | Source                                          |
-|-------------------|-------------------------------------------------|
-| `{files}`         | paths passed to the hook (stage-specific)       |
+| Variable          | Source                                            |
+|-------------------|---------------------------------------------------|
+| `{files}`         | paths passed to the hook (stage-specific)         |
 | `{staged_files}`  | `git diff --cached --name-only --diff-filter=ACMR` |
-| `{all_files}`     | `git ls-files`                                  |
+| `{all_files}`     | `git ls-files`                                    |
+| `{push_files}`    | paths parsed from `pre_push` stdin (pre_push only) |
 
 `{files}` and `{staged_files}` are distinct. `{files}` is whatever the
 stage hands the hook (staged paths for `pre_commit`, the commit message
 file for `commit_msg`, etc.), while `{staged_files}` always re-runs
 `git diff --cached` regardless of stage. If a template references
-`{files}` and the hook is invoked with no files — or references
-`{staged_files}` and `git diff --cached` returns nothing — the hook
-returns `:ok` without invoking the shell so commands like
+`{files}` or `{push_files}` and the hook is invoked with no files — or
+references `{staged_files}` and `git diff --cached` returns nothing —
+the hook returns `:ok` without invoking the shell so commands like
 `mix sobelow {files}` cannot silently scan the entire project when the
 substitution would have collapsed to an empty argument.
+
+`{push_files}` only makes sense in the `pre_push` stage. Using it on any
+other stage causes the hook to return an error so misconfigurations
+surface immediately at first dispatch rather than silently expanding to
+an empty string.
 
 ## Custom Hooks
 

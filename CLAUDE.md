@@ -90,6 +90,12 @@ config, merges each hook's defaults with user opts, and prints the result
 grouped by stage. Use it when an opt seems ignored or when verifying that
 a glob covers the files you expect.
 
+`GitHoox.Runner.run_one/3` merges a synthetic `:__stage__` key into the
+opts keyword before calling each hook, so hooks that need stage context
+(currently only `GitHoox.Hooks.Shell` for its `{push_files}` validation)
+can read it. The key is implementation detail — custom hooks are free to
+ignore it, but it is reserved.
+
 `GitHoox.Telemetry` emits `[:git_hoox, :stage, :start | :stop | :exception]`
 and `[:git_hoox, :hook, :start | :stop | :exception]` events via
 `:telemetry.span/3`. No handler is attached by default; `GitHoox.Logger`

@@ -91,4 +91,33 @@ defmodule GitHoox.Hooks.ShellTest do
       end)
     end
   end
+
+  describe "{push_files} token" do
+    test "expands from the hook arg on pre_push stage", %{repo: dir} do
+      in_repo(dir, fn ->
+        opts = [run: "echo {push_files} > out", __stage__: :pre_push]
+        assert :ok = Shell.run(["lib/foo.ex", "lib/bar.ex"], opts)
+        assert File.read!("out") =~ "lib/foo.ex"
+        assert File.read!("out") =~ "lib/bar.ex"
+      end)
+    end
+
+    test "skips when {push_files} referenced and files is empty", %{repo: dir} do
+      in_repo(dir, fn ->
+        opts = [run: "touch ran && {push_files}", __stage__: :pre_push]
+        assert :ok = Shell.run([], opts)
+        refute File.exists?("ran")
+      end)
+    end
+
+    test "rejects {push_files} outside pre_push", %{repo: dir} do
+      in_repo(dir, fn ->
+        for stage <- [:pre_commit, :commit_msg, :post_merge, nil] do
+          opts = [run: "echo {push_files}", __stage__: stage]
+          assert {:error, msg} = Shell.run(["x"], opts)
+          assert msg =~ "pre_push"
+        end
+      end)
+    end
+  end
 end
