@@ -87,7 +87,7 @@ Runs `mix format` against staged Elixir files and re-stages the result.
 {GitHoox.Hooks.Format, files: ~w(lib/**/*.ex)}
 ```
 
-Defaults: `stage_fixed: true`, `files: ~w(*.ex *.exs *.heex)`.
+Defaults: `stage_fixed: true`, `files: ~w(**/*.ex **/*.exs **/*.heex)`.
 
 ### `GitHoox.Hooks.Credo`
 

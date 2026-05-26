@@ -9,7 +9,7 @@ defmodule GitHoox.Hooks.Format do
   ## Defaults
 
     * `stage_fixed: true`
-    * `files: ~w(*.ex *.exs *.heex)`
+    * `files: ~w(**/*.ex **/*.exs **/*.heex)` — matches root and nested paths.
   """
 
   @behaviour GitHoox.Hook
@@ -26,7 +26,7 @@ defmodule GitHoox.Hooks.Format do
 
   @impl true
   @spec default_opts() :: keyword()
-  def default_opts, do: [stage_fixed: true, files: ~w(*.ex *.exs *.heex)]
+  def default_opts, do: [stage_fixed: true, files: ~w(**/*.ex **/*.exs **/*.heex)]
 
   @impl true
   @spec opts_schema() :: keyword()
