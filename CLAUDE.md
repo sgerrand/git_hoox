@@ -71,6 +71,11 @@ Key modules:
   concrete cases, doctests, and StreamData properties (the "match? never
   raises on arbitrary printable inputs" property is the main fuzz harness).
 
+`examples/` holds copy-paste custom hooks (Sobelow, coverage, JIRA ticket).
+They are not packaged with the library — `package.files` in `mix.exs` does
+not list `examples/` — so referenced modules use the `MyApp.Hooks.*`
+namespace as a convention for users adopting them.
+
 ## Tests
 
 `GitHoox.Case` (`test/support/case.ex`) sets up a real temporary git repo per
