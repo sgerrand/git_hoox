@@ -5,6 +5,33 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0](https://github.com/sgerrand/git_hoox/compare/v0.2.0...v0.3.0) (2026-05-26)
+
+
+### Features
+
+* add mix git_hoox.bench for per-hook timing percentiles ([3b4e7db](https://github.com/sgerrand/git_hoox/commit/3b4e7dbcf50100f9ec0373946911f09c3b8f3871))
+* emit telemetry around stages and hooks ([578d69d](https://github.com/sgerrand/git_hoox/commit/578d69dd298eef6ea33e31e2f7e80e21cdfc95d2))
+* **shell:** support {push_files} template token ([1bc2add](https://github.com/sgerrand/git_hoox/commit/1bc2add6c398d9bd475a87f8fc23a69741d4d4d6))
+* stream hook stdout live via GitHoox.Cmd ([1438fcb](https://github.com/sgerrand/git_hoox/commit/1438fcb726586a90d1803bfcaa8322fab6912da7))
+* **telemetry:** fire :hook :exception on timeout and crash ([e51f2e2](https://github.com/sgerrand/git_hoox/commit/e51f2e25540c3ac6bc192a46facaf1e2f471b51a))
+
+
+### Bug Fixes
+
+* stop parallel hooks interleaving each other's stdout ([8613f5c](https://github.com/sgerrand/git_hoox/commit/8613f5c1980a1f6a34a59ad29756937f42adf9ef))
+* stop Shell hook running with empty token substitution ([b82328f](https://github.com/sgerrand/git_hoox/commit/b82328fbe94a74341ee574055396fcdd4cd76331))
+
+
+### Refactor
+
+* drop unreachable error clauses in install + run tasks ([c222e4f](https://github.com/sgerrand/git_hoox/commit/c222e4f98feba21049d36676f6d166b115ffde01))
+
+
+### Documentation
+
+* **shell:** drop ex_doc reference to private invoke fn ([f17f03c](https://github.com/sgerrand/git_hoox/commit/f17f03c7795b427f725c6d1c59dfbab968582159))
+
 ## [0.2.0](https://github.com/sgerrand/git_hoox/compare/v0.1.0...v0.2.0) (2026-05-26)
 
 
