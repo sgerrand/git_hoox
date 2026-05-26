@@ -145,9 +145,19 @@ Template variables expanded in `:run`:
 
 | Variable          | Source                                          |
 |-------------------|-------------------------------------------------|
+| `{files}`         | paths passed to the hook (stage-specific)       |
 | `{staged_files}`  | `git diff --cached --name-only --diff-filter=ACMR` |
 | `{all_files}`     | `git ls-files`                                  |
-| `{push_files}`    | refs received on `pre_push` stdin               |
+
+`{files}` and `{staged_files}` are distinct. `{files}` is whatever the
+stage hands the hook (staged paths for `pre_commit`, the commit message
+file for `commit_msg`, etc.), while `{staged_files}` always re-runs
+`git diff --cached` regardless of stage. If a template references
+`{files}` and the hook is invoked with no files — or references
+`{staged_files}` and `git diff --cached` returns nothing — the hook
+returns `:ok` without invoking the shell so commands like
+`mix sobelow {files}` cannot silently scan the entire project when the
+substitution would have collapsed to an empty argument.
 
 ## Custom Hooks
 
