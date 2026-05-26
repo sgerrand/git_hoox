@@ -46,5 +46,13 @@ defmodule GitHoox.BenchTest do
       assert summary.errors == 1
       assert summary.runs == 1
     end
+
+    test "module with no samples reports zeroed percentiles" do
+      assert [s] = Bench.summarize(%{ModX => {[], 0}})
+      assert s.p50_ms == 0
+      assert s.p95_ms == 0
+      assert s.max_ms == 0
+      assert s.mean_ms == 0
+    end
   end
 end

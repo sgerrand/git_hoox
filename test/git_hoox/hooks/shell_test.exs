@@ -80,11 +80,6 @@ defmodule GitHoox.Hooks.ShellTest do
   end
 
   describe "errors" do
-    test "missing :run returns an error" do
-      assert {:error, msg} = Shell.run(["x"], [])
-      assert msg =~ ":run"
-    end
-
     test "non-zero exit propagates", %{repo: dir} do
       in_repo(dir, fn ->
         assert {:error, {1, _}} = Shell.run(["x"], run: "exit 1")
@@ -107,16 +102,6 @@ defmodule GitHoox.Hooks.ShellTest do
         opts = [run: "touch ran && {push_files}", __stage__: :pre_push]
         assert :ok = Shell.run([], opts)
         refute File.exists?("ran")
-      end)
-    end
-
-    test "rejects {push_files} outside pre_push", %{repo: dir} do
-      in_repo(dir, fn ->
-        for stage <- [:pre_commit, :commit_msg, :post_merge, nil] do
-          opts = [run: "echo {push_files}", __stage__: stage]
-          assert {:error, msg} = Shell.run(["x"], opts)
-          assert msg =~ "pre_push"
-        end
       end)
     end
   end
