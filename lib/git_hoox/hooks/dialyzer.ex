@@ -22,6 +22,10 @@ defmodule GitHoox.Hooks.Dialyzer do
   end
 
   @impl true
+  @spec opts_schema() :: keyword()
+  def opts_schema, do: []
+
+  @impl true
   @spec run(GitHoox.Hook.files(), GitHoox.Hook.opts()) :: GitHoox.hook_result()
   def run(_files, opts) do
     cmd_opts = [stderr_to_stdout: true, env: Helpers.env_opt(opts)]

@@ -17,11 +17,23 @@ defmodule GitHoox.Hooks.Test do
 
   alias GitHoox.Hooks.Helpers
 
+  @opts_schema [
+    scope: [
+      type: {:in, [:all, :stale, :related]},
+      default: :all,
+      doc: "Test selection strategy."
+    ]
+  ]
+
   @impl true
   @spec default_opts() :: keyword()
   def default_opts do
     [stage_fixed: false, files: ~w(**/*.ex **/*.exs), scope: :all]
   end
+
+  @impl true
+  @spec opts_schema() :: keyword()
+  def opts_schema, do: @opts_schema
 
   @impl true
   @spec run(GitHoox.Hook.files(), GitHoox.Hook.opts()) :: GitHoox.hook_result()

@@ -154,19 +154,37 @@ Implement the `GitHoox.Hook` behaviour:
 defmodule MyApp.Hooks.Sobelow do
   @behaviour GitHoox.Hook
 
+  @opts_schema [
+    confidence: [type: :string, default: "Low",
+                 doc: "Minimum severity that fails the build."]
+  ]
+
   @impl true
   def default_opts, do: [files: ~w(lib/**/*.ex), stage_fixed: false]
 
   @impl true
+  def opts_schema, do: @opts_schema
+
+  @impl true
   def run([], _opts), do: :ok
-  def run(files, _opts) do
-    case System.cmd("mix", ["sobelow", "--exit" | files], stderr_to_stdout: true) do
+  def run(files, opts) do
+    args = ["sobelow", "--exit", Keyword.fetch!(opts, :confidence) | files]
+
+    case System.cmd("mix", args, stderr_to_stdout: true) do
       {_, 0} -> :ok
       {out, code} -> {:error, {code, out}}
     end
   end
 end
 ```
+
+The optional `opts_schema/0` callback declares a
+[NimbleOptions](https://hexdocs.pm/nimble_options) schema for any keys
+not part of the global hook schema (`:files`, `:stage_fixed`, `:timeout`,
+`:env`). Unknown keys, missing required keys, and wrong types surface at
+`mix git_hoox.doctor` and `mix git_hoox.run` config-load time. Hooks
+that do not implement the callback continue to accept arbitrary extras
+without validation.
 
 Register in `.git_hoox.exs`:
 

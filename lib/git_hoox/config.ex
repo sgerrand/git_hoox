@@ -112,15 +112,33 @@ defmodule GitHoox.Config do
 
   defp validate_opts(stage, mod, opts) do
     merged = merge_defaults(mod, opts)
+
+    with :ok <- validate_global(stage, mod, merged) do
+      validate_hook_specific(stage, mod, merged)
+    end
+  end
+
+  defp validate_global(stage, mod, merged) do
     known = Schema.hook_opts_schema() |> Keyword.keys()
     to_validate = Keyword.take(merged, known)
 
     case NimbleOptions.validate(to_validate, Schema.hook_opts_schema()) do
-      {:ok, _} ->
-        :ok
+      {:ok, _} -> :ok
+      {:error, err} -> {:error, {:invalid_hook_opts, stage, mod, Exception.message(err)}}
+    end
+  end
 
-      {:error, %NimbleOptions.ValidationError{} = err} ->
-        {:error, {:invalid_hook_opts, stage, mod, Exception.message(err)}}
+  defp validate_hook_specific(stage, mod, merged) do
+    if function_exported?(mod, :opts_schema, 0) do
+      known = Schema.hook_opts_schema() |> Keyword.keys()
+      extras = Keyword.drop(merged, known)
+
+      case NimbleOptions.validate(extras, mod.opts_schema()) do
+        {:ok, _} -> :ok
+        {:error, err} -> {:error, {:invalid_hook_opts, stage, mod, Exception.message(err)}}
+      end
+    else
+      :ok
     end
   end
 

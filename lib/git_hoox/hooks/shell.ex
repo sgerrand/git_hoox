@@ -19,9 +19,26 @@ defmodule GitHoox.Hooks.Shell do
 
   alias GitHoox.Hooks.Helpers
 
+  @opts_schema [
+    run: [
+      type: :string,
+      required: true,
+      doc: "Command template. Supports {staged_files}, {all_files}, {files}."
+    ],
+    shell: [
+      type: :string,
+      default: "sh",
+      doc: "Shell executable used to run the command."
+    ]
+  ]
+
   @impl true
   @spec default_opts() :: keyword()
   def default_opts, do: [stage_fixed: false]
+
+  @impl true
+  @spec opts_schema() :: keyword()
+  def opts_schema, do: @opts_schema
 
   @impl true
   @spec run(GitHoox.Hook.files(), GitHoox.Hook.opts()) :: GitHoox.hook_result()

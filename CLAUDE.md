@@ -56,11 +56,14 @@ Key modules:
   Built-in hooks (`GitHoox.Hooks.{Format,Credo,Test,Dialyzer,Shell}`) all
   implement this and share `GitHoox.Hooks.Helpers.env_opt/1` for forwarding
   the per-hook `:env` map to `System.cmd`.
-- `GitHoox.Config` — loads `.git_hoox.exs` via `Code.eval_file/1`, validates
-  the top-level shape and per-hook opts against
-  `GitHoox.Config.Schema` (NimbleOptions). Unknown opts are passed through to
-  hooks without validation; only the global keys
-  (`files`/`stage_fixed`/`timeout`/`env`) are schema-checked.
+- `GitHoox.Config` — loads `.git_hoox.exs` via `Code.eval_file/1`. Validates
+  the top-level shape and the global hook opts (`files`/`stage_fixed`/
+  `timeout`/`env`) against `GitHoox.Config.Schema`. Hook-specific opts (the
+  rest) are validated against the hook's optional `opts_schema/0` callback
+  if present — hooks that omit the callback accept arbitrary extras without
+  validation. All built-in hooks declare a schema; the in-test fixtures
+  (`Pass`, `Fail`, `Slow`, etc.) intentionally do not, which keeps them
+  permissive enough to accept ad-hoc `:reason`/`:sleep_ms` opts.
 - `GitHoox.Git` — thin wrapper around `git` via `System.cmd`. All file
   listings use `-z` + null-split to handle filenames with spaces.
 - `GitHoox.Installer` — writes shims for all 8 stages; refuses to overwrite

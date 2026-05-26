@@ -44,5 +44,15 @@ defmodule GitHoox.Hook do
   """
   @callback default_opts() :: keyword()
 
-  @optional_callbacks default_opts: 0
+  @doc """
+  Hook-specific [NimbleOptions](https://hexdocs.pm/nimble_options) schema.
+
+  Used by `GitHoox.Config` to validate any opts the user passes that are
+  not part of the global schema (`:files`, `:stage_fixed`, `:timeout`,
+  `:env`). Hooks that do not implement this callback accept arbitrary
+  extra opts without validation.
+  """
+  @callback opts_schema() :: keyword()
+
+  @optional_callbacks default_opts: 0, opts_schema: 0
 end

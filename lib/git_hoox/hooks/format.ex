@@ -16,9 +16,21 @@ defmodule GitHoox.Hooks.Format do
 
   alias GitHoox.Hooks.Helpers
 
+  @opts_schema [
+    check_only: [
+      type: :boolean,
+      default: false,
+      doc: "Use `mix format --check-formatted`. Fails instead of mutating."
+    ]
+  ]
+
   @impl true
   @spec default_opts() :: keyword()
   def default_opts, do: [stage_fixed: true, files: ~w(*.ex *.exs *.heex)]
+
+  @impl true
+  @spec opts_schema() :: keyword()
+  def opts_schema, do: @opts_schema
 
   @impl true
   @spec run(GitHoox.Hook.files(), GitHoox.Hook.opts()) :: GitHoox.hook_result()

@@ -16,11 +16,23 @@ defmodule GitHoox.Hooks.Credo do
 
   alias GitHoox.Hooks.Helpers
 
+  @opts_schema [
+    strict: [
+      type: :boolean,
+      default: false,
+      doc: "Pass `--strict` to credo."
+    ]
+  ]
+
   @impl true
   @spec default_opts() :: keyword()
   def default_opts do
     [stage_fixed: false, files: ~w(lib/**/*.ex test/**/*.exs)]
   end
+
+  @impl true
+  @spec opts_schema() :: keyword()
+  def opts_schema, do: @opts_schema
 
   @impl true
   @spec run(GitHoox.Hook.files(), GitHoox.Hook.opts()) :: GitHoox.hook_result()
