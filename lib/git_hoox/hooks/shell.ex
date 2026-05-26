@@ -36,11 +36,10 @@ defmodule GitHoox.Hooks.Shell do
 
   ## Timeouts
 
-  Timeouts are enforced by `GitHoox.Runner.invoke_with_timeout/4`, not by
-  this module. A shell command exceeding the per-hook `:timeout` is killed
-  brutally and surfaces as `{:error, {:timeout, ms}}`. The default timeout
-  is 30 000 ms — override per hook via the `:timeout` option in the global
-  hook schema.
+  Timeouts are enforced by `GitHoox.Runner`, not by this module. A shell
+  command exceeding the per-hook `:timeout` is killed brutally and surfaces
+  as `{:error, {:timeout, ms}}`. The default timeout is 30 000 ms —
+  override per hook via the `:timeout` option in the global hook schema.
   """
 
   @behaviour GitHoox.Hook
