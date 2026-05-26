@@ -68,5 +68,5 @@ defmodule Mix.Tasks.GitHoox.Install do
   end
 
   defp format_error({:exists, path, msg}), do: "#{msg}\n  #{path}"
-  defp format_error(:not_a_git_repo), do: "Not inside a git repository."
+  defp format_error(other), do: "git_hoox install failed: #{inspect(other)}"
 end

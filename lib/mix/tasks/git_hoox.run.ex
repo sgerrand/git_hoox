@@ -35,7 +35,6 @@ defmodule Mix.Tasks.GitHoox.Run do
     case IO.read(:stdio, :eof) do
       :eof -> nil
       data when is_binary(data) -> data
-      _ -> nil
     end
   end
 
