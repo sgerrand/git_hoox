@@ -16,6 +16,7 @@ defmodule GitHoox.MixProject do
       package: package(),
       docs: docs(),
       dialyzer: dialyzer(),
+      test_coverage: test_coverage(),
       name: "GitHoox",
       source_url: @source_url
     ]
@@ -94,6 +95,17 @@ defmodule GitHoox.MixProject do
       plt_add_apps: [:mix, :ex_unit],
       plt_file: {:no_warn, "priv/plts/dialyzer.plt"},
       flags: [:error_handling, :unknown, :no_opaque, :extra_return]
+    ]
+  end
+
+  defp test_coverage do
+    [
+      summary: [threshold: 100],
+      ignore_modules: [
+        GitHoox.Case,
+        GitHoox.GitFixture,
+        ~r/^GitHoox\.TestHooks/
+      ]
     ]
   end
 end
