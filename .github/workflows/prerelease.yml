@@ -15,10 +15,16 @@ jobs:
   cut:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/create-github-app-token@67018539274d69449ef7c02e8e71183d1719ab42 # v2.1.4
+        id: app-token
+        with:
+          app-id: ${{ secrets.RELEASE_BATON_CLIENT_ID }}
+          private-key: ${{ secrets.RELEASE_BATON_PRIVATE_KEY }}
+
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ steps.app-token.outputs.token }}
 
       - name: Validate version
         env:
@@ -34,7 +40,11 @@ jobs:
           VERSION: ${{ github.event.inputs.version }}
         run: |
           if git rev-parse "v$VERSION" >/dev/null 2>&1; then
-            echo "::error::Tag v$VERSION already exists"
+            echo "::error::Tag v$VERSION already exists locally"
+            exit 1
+          fi
+          if git ls-remote --tags origin "refs/tags/v$VERSION" | grep -q .; then
+            echo "::error::Tag v$VERSION already exists on origin"
             exit 1
           fi
 
@@ -54,7 +64,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-      - name: Branch, commit, tag, push
+      - name: Branch, commit, push
         env:
           VERSION: ${{ github.event.inputs.version }}
         run: |
@@ -62,13 +72,11 @@ jobs:
           git checkout -b "$BRANCH"
           git add mix.exs
           git commit -m "chore(release): cut v$VERSION"
-          git tag -a "v$VERSION" -m "v$VERSION"
           git push --set-upstream origin "$BRANCH"
-          git push origin "v$VERSION"
 
-      - name: Create GitHub pre-release
+      - name: Create GitHub tag and pre-release
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
           VERSION: ${{ github.event.inputs.version }}
         run: |
           gh release create "v$VERSION" \

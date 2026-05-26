@@ -131,11 +131,22 @@ Pre-1.0 semver via release-please: `fix:` → patch, `feat:` → minor,
 
 `.github/workflows/prerelease.yml` is a `workflow_dispatch` job that accepts
 an `X.Y.Z-(rc|beta|alpha).N` version input, bumps `@version` in `mix.exs`,
-creates the branch `prerelease/vX.Y.Z-rc.N`, tags it, and creates a
-GitHub pre-release marked as such. The existing `publish.yml` fires on the
-same `release: published` event and pushes the package to Hex. Stable
-release flow via `release-please` is unaffected — release-please only
-operates on `main`, so the prerelease branch coexists.
+creates the branch `prerelease/vX.Y.Z-rc.N`, pushes it, then calls
+`gh release create --target <branch>` so the tag and pre-release land
+together. This ordering matters: pushing the tag separately and then
+calling `gh release create` leaves an orphan tag if the release step
+fails. Two further nuances:
+
+- The workflow mints a release-baton GitHub App token via
+  `actions/create-github-app-token` and uses it for both `git push` and
+  `gh release create`. Default `GITHUB_TOKEN` actions in a workflow
+  cannot trigger downstream workflows, so a release created with the
+  default token would not fire `release: published` and `publish.yml`
+  would silently never run. The app token bypasses that restriction.
+- The existing `publish.yml` fires on `release: published` for both
+  stable and pre-release types and pushes the package to Hex. Stable
+  release flow via `release-please` is unaffected — release-please only
+  operates on `main`, so the prerelease branch coexists.
 
 Trigger via `gh workflow run prerelease.yml -f version=0.2.0-rc.1` or via
 the Actions tab. The workflow refuses if the tag already exists or if the
