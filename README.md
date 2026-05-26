@@ -16,7 +16,7 @@ Add `git_hoox` to your dev dependencies in `mix.exs`:
 ```elixir
 def deps do
   [
-    {:git_hoox, "~> 0.1.0", only: [:dev], runtime: false}
+    {:git_hoox, "~> 0.2.0", only: [:dev], runtime: false}
   ]
 end
 ```
