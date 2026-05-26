@@ -11,6 +11,7 @@ defmodule GitHoox.Runner do
   alias GitHoox.Config.Error, as: ConfigError
   alias GitHoox.Git
   alias GitHoox.Glob
+  alias GitHoox.Telemetry
 
   @typedoc "One hook's exit summary."
   @type hook_outcome :: {module(), GitHoox.hook_result()}
@@ -32,7 +33,9 @@ defmodule GitHoox.Runner do
         |> Keyword.get(stage, [])
         |> filter_skipped(config.skip_env)
 
-      execute(entries, files, config)
+      Telemetry.stage_span(stage, length(entries), length(files), fn ->
+        execute(entries, files, config, stage)
+      end)
     else
       {:error, reason} ->
         IO.puts(:stderr, ConfigError.format(reason))
@@ -79,14 +82,14 @@ defmodule GitHoox.Runner do
     |> String.downcase()
   end
 
-  defp execute([], _files, _config), do: :ok
+  defp execute([], _files, _config, _stage), do: :ok
 
-  defp execute(entries, files, config) do
+  defp execute(entries, files, config, stage) do
     results =
       if config.parallel do
-        run_parallel(entries, files, config)
+        run_parallel(entries, files, config, stage)
       else
-        run_serial(entries, files, config)
+        run_serial(entries, files, config, stage)
       end
 
     failures = Enum.filter(results, &failure?/1)
@@ -97,9 +100,9 @@ defmodule GitHoox.Runner do
     end
   end
 
-  defp run_serial(entries, files, config) do
+  defp run_serial(entries, files, config, stage) do
     Enum.reduce_while(entries, [], fn entry, acc ->
-      result = run_one(entry, files)
+      result = run_one(entry, files, stage)
       acc = [{elem(entry, 0), result} | acc]
 
       if config.fail_fast and failure?({elem(entry, 0), result}) do
@@ -113,10 +116,10 @@ defmodule GitHoox.Runner do
     end
   end
 
-  defp run_parallel(entries, files, _config) do
+  defp run_parallel(entries, files, _config, stage) do
     entries
     |> Task.async_stream(
-      fn entry -> {elem(entry, 0), run_one(entry, files)} end,
+      fn entry -> {elem(entry, 0), run_one(entry, files, stage)} end,
       max_concurrency: System.schedulers_online(),
       ordered: true,
       timeout: :infinity
@@ -124,18 +127,20 @@ defmodule GitHoox.Runner do
     |> Enum.map(fn {:ok, outcome} -> outcome end)
   end
 
-  defp run_one({mod, user_opts}, files) do
+  defp run_one({mod, user_opts}, files, stage) do
     opts = merge_defaults(mod, user_opts)
     matched = filter_files(files, Keyword.fetch!(opts, :files))
 
     if matched == [] do
-      :skip
+      Telemetry.hook_span(stage, mod, 0, fn -> :skip end)
     else
       timeout = Keyword.get(opts, :timeout, 30_000)
 
-      matched
-      |> invoke_with_timeout(mod, opts, timeout)
-      |> maybe_restage(opts)
+      Telemetry.hook_span(stage, mod, length(matched), fn ->
+        matched
+        |> invoke_with_timeout(mod, opts, timeout)
+        |> maybe_restage(opts)
+      end)
     end
   end
 

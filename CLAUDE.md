@@ -90,6 +90,15 @@ config, merges each hook's defaults with user opts, and prints the result
 grouped by stage. Use it when an opt seems ignored or when verifying that
 a glob covers the files you expect.
 
+`GitHoox.Telemetry` emits `[:git_hoox, :stage, :start | :stop | :exception]`
+and `[:git_hoox, :hook, :start | :stop | :exception]` events via
+`:telemetry.span/3`. No handler is attached by default; `GitHoox.Logger`
+is the reference handler (`GitHoox.Logger.attach/0`). Stage events log at
+`:info`/`:warning`; hook events log at `:debug`/`:warning`. The
+`Runner.run_one/3` flow always goes through `Telemetry.hook_span/4`, so a
+hook with no matched files still emits a `:skip` stop event — useful for
+verifying that a glob filtered out everything.
+
 ## Tests
 
 `GitHoox.Case` (`test/support/case.ex`) sets up a real temporary git repo per

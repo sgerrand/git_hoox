@@ -35,6 +35,7 @@ defmodule GitHoox.MixProject do
   defp deps do
     [
       {:nimble_options, "~> 1.0"},
+      {:telemetry, "~> 1.0"},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:dialyxir, "~> 1.4", only: [:dev], runtime: false},
       {:ex_doc, "~> 0.34", only: :dev, runtime: false},
@@ -68,6 +69,7 @@ defmodule GitHoox.MixProject do
         Core: [GitHoox, GitHoox.Hook, GitHoox.Runner, GitHoox.Config, GitHoox.Glob],
         Git: [GitHoox.Git, GitHoox.Installer],
         Diagnostics: [GitHoox.Doctor],
+        Observability: [GitHoox.Telemetry, GitHoox.Logger],
         "Built-in Hooks": [
           GitHoox.Hooks.Format,
           GitHoox.Hooks.Credo,

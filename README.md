@@ -231,6 +231,29 @@ GIT_HOOX_ONLY=test git push                 # run only one
 
 Module names match the suffix after `GitHoox.Hooks.` (lowercased).
 
+## Observability
+
+GitHoox emits `:telemetry` events around every stage and every hook, with no
+default handler attached. Attach the reference `Logger`-backed handler with
+`GitHoox.Logger.attach/0`, or roll your own — the event shape is documented
+on `GitHoox.Telemetry`.
+
+```elixir
+# Reference Logger output.
+GitHoox.Logger.attach()
+
+# Or a custom one, e.g. for shipping timings to a metrics backend.
+:telemetry.attach(
+  "git-hoox-timings",
+  [:git_hoox, :hook, :stop],
+  fn _ev, %{duration: d}, %{module: mod, result: r}, _ ->
+    ms = System.convert_time_unit(d, :native, :millisecond)
+    :ok = MyMetrics.observe("git_hoox.hook", ms, mod: mod, result: r)
+  end,
+  nil
+)
+```
+
 ## Diagnose Setup Issues
 
 ```sh
