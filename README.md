@@ -176,7 +176,7 @@ pre_commit: [
 ]
 ```
 
-The [`examples/`](examples/) directory ships ready-to-copy custom hooks
+The [`examples/`](https://github.com/sgerrand/git_hoox/tree/main/examples) directory ships ready-to-copy custom hooks
 (Sobelow, ExCoveralls coverage threshold, JIRA ticket enforcement).
 
 Return values:
