@@ -85,6 +85,11 @@ foreign), config presence, config validity. The mix task exits 1 only on
 `:error` severity; `:warn` (missing shims or config) is non-fatal, so the
 task is safe to call from CI.
 
+`mix git_hoox.list` is the debug companion to `doctor`: it loads the
+config, merges each hook's defaults with user opts, and prints the result
+grouped by stage. Use it when an opt seems ignored or when verifying that
+a glob covers the files you expect.
+
 ## Tests
 
 `GitHoox.Case` (`test/support/case.ex`) sets up a real temporary git repo per

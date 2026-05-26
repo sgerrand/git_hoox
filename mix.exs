@@ -79,7 +79,8 @@ defmodule GitHoox.MixProject do
           Mix.Tasks.GitHoox.Install,
           Mix.Tasks.GitHoox.Uninstall,
           Mix.Tasks.GitHoox.Run,
-          Mix.Tasks.GitHoox.Doctor
+          Mix.Tasks.GitHoox.Doctor,
+          Mix.Tasks.GitHoox.List
         ]
       ]
     ]

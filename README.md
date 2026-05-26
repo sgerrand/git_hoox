@@ -239,6 +239,16 @@ config file, and config validity. Exits non-zero only on hard errors
 (e.g. malformed `.git_hoox.exs`); missing shims or missing config surface
 as `[warn]` lines so the task is safe to run from CI as a sanity check.
 
+## Inspect Resolved Config
+
+```sh
+mix git_hoox.list
+```
+
+Loads `.git_hoox.exs`, merges each hook's `default_opts/0` with your
+overrides, and prints the result grouped by stage. Useful for confirming
+that an opt you set is actually being passed to the hook.
+
 ## Uninstall
 
 ```sh
