@@ -127,6 +127,20 @@ matches `mix.exs @version` before uploading.
 Pre-1.0 semver via release-please: `fix:` → patch, `feat:` → minor,
 `feat!:`/`BREAKING CHANGE:` → minor (not major).
 
+### Cutting a pre-release
+
+`.github/workflows/prerelease.yml` is a `workflow_dispatch` job that accepts
+an `X.Y.Z-(rc|beta|alpha).N` version input, bumps `@version` in `mix.exs`,
+creates the branch `prerelease/vX.Y.Z-rc.N`, tags it, and creates a
+GitHub pre-release marked as such. The existing `publish.yml` fires on the
+same `release: published` event and pushes the package to Hex. Stable
+release flow via `release-please` is unaffected — release-please only
+operates on `main`, so the prerelease branch coexists.
+
+Trigger via `gh workflow run prerelease.yml -f version=0.2.0-rc.1` or via
+the Actions tab. The workflow refuses if the tag already exists or if the
+version does not match the expected shape.
+
 ## GitHub Actions
 
 All workflow `uses:` references are pinned to commit SHAs with a `# vX.Y.Z`

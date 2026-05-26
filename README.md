@@ -266,6 +266,11 @@ GitHoox is pre-1.0. The public API surface (`GitHoox`, `GitHoox.Hook`,
 and the `mix git_hoox.*` tasks) follows semver from 0.1.0 onward, but internals
 under modules marked `@moduledoc false` (e.g. config schema) may change without notice.
 
+Pre-releases are cut on demand via the Pre-release GitHub Action
+(`workflow_dispatch`) and published to Hex with the standard
+`-rc.N`/`-beta.N`/`-alpha.N` semver suffix, so you can pin a release
+candidate with `{:git_hoox, "0.2.0-rc.1"}` before the stable cut.
+
 Documentation is published to [HexDocs](https://hexdocs.pm/git_hoox).
 
 ## Changelog

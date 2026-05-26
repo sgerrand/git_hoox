@@ -1,0 +1,78 @@
+name: Pre-release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Pre-release version, e.g. 0.2.0-rc.1"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  cut:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Validate version
+        env:
+          VERSION: ${{ github.event.inputs.version }}
+        run: |
+          if ! printf '%s' "$VERSION" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+-(rc|beta|alpha)\.[0-9]+$'; then
+            echo "::error::Version must match X.Y.Z-(rc|beta|alpha).N, got: $VERSION"
+            exit 1
+          fi
+
+      - name: Refuse if tag exists
+        env:
+          VERSION: ${{ github.event.inputs.version }}
+        run: |
+          if git rev-parse "v$VERSION" >/dev/null 2>&1; then
+            echo "::error::Tag v$VERSION already exists"
+            exit 1
+          fi
+
+      - name: Bump @version in mix.exs
+        env:
+          VERSION: ${{ github.event.inputs.version }}
+        run: |
+          if ! grep -qE '^\s*@version "' mix.exs; then
+            echo "::error::Could not find @version in mix.exs"
+            exit 1
+          fi
+          sed -i -E "s/^([[:space:]]*@version )\"[^\"]+\"/\1\"$VERSION\"/" mix.exs
+          grep '^\s*@version' mix.exs
+
+      - name: Configure git author
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Branch, commit, tag, push
+        env:
+          VERSION: ${{ github.event.inputs.version }}
+        run: |
+          BRANCH="prerelease/v$VERSION"
+          git checkout -b "$BRANCH"
+          git add mix.exs
+          git commit -m "chore(release): cut v$VERSION"
+          git tag -a "v$VERSION" -m "v$VERSION"
+          git push --set-upstream origin "$BRANCH"
+          git push origin "v$VERSION"
+
+      - name: Create GitHub pre-release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ github.event.inputs.version }}
+        run: |
+          gh release create "v$VERSION" \
+            --prerelease \
+            --title "v$VERSION" \
+            --target "prerelease/v$VERSION" \
+            --notes "Pre-release. See CHANGELOG.md on main for details once promoted."
