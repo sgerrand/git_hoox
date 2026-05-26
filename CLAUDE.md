@@ -66,6 +66,10 @@ Key modules:
 - `GitHoox.Installer` — writes shims for all 8 stages; refuses to overwrite
   foreign hooks unless `:force`, in which case it backs up to
   `<hook>.backup.<utc-iso8601>`. `scaffold/1` writes a starter `.git_hoox.exs`.
+- `GitHoox.Glob` — hand-rolled `match?/2` for hook `:files` filters. Supports
+  `**/`, `**`, `*`, `?`. Covered by `test/git_hoox/glob_test.exs` with
+  concrete cases, doctests, and StreamData properties (the "match? never
+  raises on arbitrary printable inputs" property is the main fuzz harness).
 
 ## Tests
 

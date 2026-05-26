@@ -37,7 +37,8 @@ defmodule GitHoox.MixProject do
       {:nimble_options, "~> 1.0"},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:dialyxir, "~> 1.4", only: [:dev], runtime: false},
-      {:ex_doc, "~> 0.34", only: :dev, runtime: false}
+      {:ex_doc, "~> 0.34", only: :dev, runtime: false},
+      {:stream_data, "~> 1.1", only: [:dev, :test], runtime: false}
     ]
   end
 
@@ -64,7 +65,7 @@ defmodule GitHoox.MixProject do
       source_ref: "v#{@version}",
       extras: ["CHANGELOG.md", "LICENSE", "README.md"],
       groups_for_modules: [
-        Core: [GitHoox, GitHoox.Hook, GitHoox.Runner, GitHoox.Config],
+        Core: [GitHoox, GitHoox.Hook, GitHoox.Runner, GitHoox.Config, GitHoox.Glob],
         Git: [GitHoox.Git, GitHoox.Installer],
         "Built-in Hooks": [
           GitHoox.Hooks.Format,

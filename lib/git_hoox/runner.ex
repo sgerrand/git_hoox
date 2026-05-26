@@ -10,6 +10,7 @@ defmodule GitHoox.Runner do
   alias GitHoox.Config
   alias GitHoox.Config.Error, as: ConfigError
   alias GitHoox.Git
+  alias GitHoox.Glob
 
   @typedoc "One hook's exit summary."
   @type hook_outcome :: {module(), GitHoox.hook_result()}
@@ -158,19 +159,7 @@ defmodule GitHoox.Runner do
   end
 
   defp filter_files(files, patterns) do
-    Enum.filter(files, fn f -> Enum.any?(patterns, &match_glob?(&1, f)) end)
-  end
-
-  defp match_glob?(pattern, file) do
-    regex =
-      pattern
-      |> Regex.escape()
-      |> String.replace("\\*\\*/", "(?:.*/)?")
-      |> String.replace("\\*\\*", ".*")
-      |> String.replace("\\*", "[^/]*")
-      |> String.replace("\\?", "[^/]")
-
-    Regex.match?(~r/\A#{regex}\z/, file)
+    Enum.filter(files, fn f -> Enum.any?(patterns, &Glob.match?(f, &1)) end)
   end
 
   defp maybe_restage({:ok, modified}, opts) when is_list(modified) do
