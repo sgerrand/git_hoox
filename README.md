@@ -210,6 +210,17 @@ GIT_HOOX_ONLY=test git push                 # run only one
 
 Module names match the suffix after `GitHoox.Hooks.` (lowercased).
 
+## Diagnose Setup Issues
+
+```sh
+mix git_hoox.doctor
+```
+
+Reports the state of the git repo, hooks directory, installed shims,
+config file, and config validity. Exits non-zero only on hard errors
+(e.g. malformed `.git_hoox.exs`); missing shims or missing config surface
+as `[warn]` lines so the task is safe to run from CI as a sanity check.
+
 ## Uninstall
 
 ```sh

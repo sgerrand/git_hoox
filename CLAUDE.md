@@ -76,6 +76,12 @@ They are not packaged with the library — `package.files` in `mix.exs` does
 not list `examples/` — so referenced modules use the `MyApp.Hooks.*`
 namespace as a convention for users adopting them.
 
+`GitHoox.Doctor` and `mix git_hoox.doctor` provide a one-shot health check:
+git repo presence, hooks directory state, shim ownership (managed vs.
+foreign), config presence, config validity. The mix task exits 1 only on
+`:error` severity; `:warn` (missing shims or config) is non-fatal, so the
+task is safe to call from CI.
+
 ## Tests
 
 `GitHoox.Case` (`test/support/case.ex`) sets up a real temporary git repo per

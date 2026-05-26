@@ -29,6 +29,10 @@ defmodule GitHoox.Installer do
 
   @config_filename ".git_hoox.exs"
 
+  @doc "Name of the per-repo config file."
+  @spec config_filename() :: String.t()
+  def config_filename, do: @config_filename
+
   @default_config """
   %{
     hooks: [

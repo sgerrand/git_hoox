@@ -67,6 +67,7 @@ defmodule GitHoox.MixProject do
       groups_for_modules: [
         Core: [GitHoox, GitHoox.Hook, GitHoox.Runner, GitHoox.Config, GitHoox.Glob],
         Git: [GitHoox.Git, GitHoox.Installer],
+        Diagnostics: [GitHoox.Doctor],
         "Built-in Hooks": [
           GitHoox.Hooks.Format,
           GitHoox.Hooks.Credo,
@@ -77,7 +78,8 @@ defmodule GitHoox.MixProject do
         "Mix Tasks": [
           Mix.Tasks.GitHoox.Install,
           Mix.Tasks.GitHoox.Uninstall,
-          Mix.Tasks.GitHoox.Run
+          Mix.Tasks.GitHoox.Run,
+          Mix.Tasks.GitHoox.Doctor
         ]
       ]
     ]
