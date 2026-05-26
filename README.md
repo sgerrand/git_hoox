@@ -291,6 +291,21 @@ Loads `.git_hoox.exs`, merges each hook's `default_opts/0` with your
 overrides, and prints the result grouped by stage. Useful for confirming
 that an opt you set is actually being passed to the hook.
 
+## Benchmark Hooks
+
+```sh
+mix git_hoox.bench                      # pre_commit, 5 runs
+mix git_hoox.bench --stage pre_push     # different stage
+mix git_hoox.bench --runs 20            # more samples
+mix git_hoox.bench -s commit-msg -n 3
+```
+
+Attaches a `:telemetry` handler, dispatches `mix git_hoox.run <stage>`
+the requested number of times, and prints per-hook timing statistics
+(`runs`, `errors`, `p50`, `p95`, `max`, `mean`, `total`) sorted by total
+time. Use it when deciding whether a hook is cheap enough to keep on
+`pre_commit` or should move to `pre_push`.
+
 ## Uninstall
 
 ```sh

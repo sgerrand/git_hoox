@@ -90,6 +90,12 @@ config, merges each hook's defaults with user opts, and prints the result
 grouped by stage. Use it when an opt seems ignored or when verifying that
 a glob covers the files you expect.
 
+`GitHoox.Bench` and `mix git_hoox.bench` use the telemetry events to
+sample `Runner.run/1` N times and aggregate per-module durations into
+`p50/p95/max/mean/total` summaries plus an `errors` count. The summary
+logic lives in `Bench.summarize/1` and takes a `%{module => {[native_us],
+errors}}` shape so it can be unit-tested without invoking the runner.
+
 `GitHoox.Runner.run_one/3` merges a synthetic `:__stage__` key into the
 opts keyword before calling each hook, so hooks that need stage context
 (currently only `GitHoox.Hooks.Shell` for its `{push_files}` validation)
