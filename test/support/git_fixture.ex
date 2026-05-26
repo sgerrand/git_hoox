@@ -43,6 +43,25 @@ defmodule GitHoox.GitFixture do
     String.split(out, "\n", trim: true)
   end
 
+  @doc "Set a git config key in the repo at `dir`."
+  @spec set_config(Path.t(), String.t(), String.t()) :: :ok
+  def set_config(dir, key, value) do
+    sh!(dir, ["config", key, value])
+    :ok
+  end
+
+  @doc """
+  Add a linked worktree at `path` checked out to a new `branch`.
+
+  Returns the worktree path. The caller is responsible for cleanup
+  (typically via `on_exit/1`).
+  """
+  @spec worktree_add(Path.t(), String.t(), Path.t()) :: Path.t()
+  def worktree_add(dir, branch, path) do
+    sh!(dir, ["worktree", "add", "-q", "-b", branch, path])
+    path
+  end
+
   @spec sh(Path.t(), [String.t()]) :: {String.t(), non_neg_integer()}
   def sh(dir, args) do
     System.cmd("git", args, cd: dir, stderr_to_stdout: true, env: clean_env())

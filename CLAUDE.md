@@ -96,7 +96,11 @@ a glob covers the files you expect.
 test via `GitHoox.GitFixture`. Tests that mutate the process cwd via
 `File.cd!/2` must be `async: false`. The fixture sets a hermetic env
 (`GIT_CONFIG_GLOBAL=/dev/null`, fixed author/committer dates) so behavior is
-deterministic across machines.
+deterministic across machines. `GitFixture.set_config/3` and
+`worktree_add/3` exist for tests that exercise `core.hooksPath` or linked
+worktree paths. Note that git shares `.git/hooks` across all worktrees by
+default; per-worktree isolation requires setting `core.hooksPath` on the
+worktree explicitly.
 
 Test-only hook modules live in `test/support/hooks.ex`: `Pass`, `Fail`,
 `MutateAndReport`, `Counter`, `RecordFiles`, `Slow`. They are loaded via
