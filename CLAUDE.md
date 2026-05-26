@@ -152,6 +152,20 @@ Trigger via `gh workflow run prerelease.yml -f version=0.2.0-rc.1` or via
 the Actions tab. The workflow refuses if the tag already exists or if the
 version does not match the expected shape.
 
+Accepted version shapes:
+
+- Explicit: `X.Y.Z-(rc|beta|alpha|next|pre|dev).N` (e.g. `0.2.0-rc.1`,
+  `0.3.0-beta.3`, `0.3.0-next.7`).
+- Next-channel shorthand: `X.Y.Z-next` (no trailing `.N`). The workflow
+  scans existing `vX.Y.Z-next.M` tags on origin and bumps `M` by one, so
+  successive dispatches of `0.3.0-next` cut `0.3.0-next.1`, `.2`, `.3`,
+  ... without the caller tracking the counter.
+
+The next-channel pattern gives you a rolling "what's on `main` right
+now" prerelease stream. Stable releases via release-please are still
+the source of truth on `main`; `next` tags live on per-cut prerelease
+branches and are not merged back.
+
 ## GitHub Actions
 
 All workflow `uses:` references are pinned to commit SHAs with a `# vX.Y.Z`

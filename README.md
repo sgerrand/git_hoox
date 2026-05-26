@@ -272,7 +272,10 @@ under modules marked `@moduledoc false` (e.g. config schema) may change without 
 Pre-releases are cut on demand via the Pre-release GitHub Action
 (`workflow_dispatch`) and published to Hex with the standard
 `-rc.N`/`-beta.N`/`-alpha.N` semver suffix, so you can pin a release
-candidate with `{:git_hoox, "0.2.0-rc.1"}` before the stable cut.
+candidate with `{:git_hoox, "0.2.0-rc.1"}` before the stable cut. A
+rolling `-next.N` channel is also supported — dispatching the workflow
+with version `0.3.0-next` auto-increments the trailing counter from the
+existing tags on origin.
 
 Documentation is published to [HexDocs](https://hexdocs.pm/git_hoox).
 

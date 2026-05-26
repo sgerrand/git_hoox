@@ -4,7 +4,9 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: "Pre-release version, e.g. 0.2.0-rc.1"
+        description: >
+          Pre-release version. Accepts X.Y.Z-(rc|beta|alpha|next|pre|dev).N,
+          or the bare next-channel form X.Y.Z-next (N auto-incremented).
         required: true
         type: string
 
@@ -26,18 +28,35 @@ jobs:
           fetch-depth: 0
           token: ${{ steps.app-token.outputs.token }}
 
-      - name: Validate version
+      - name: Resolve version
+        id: resolve
         env:
-          VERSION: ${{ github.event.inputs.version }}
+          INPUT: ${{ github.event.inputs.version }}
         run: |
-          if ! printf '%s' "$VERSION" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+-(rc|beta|alpha)\.[0-9]+$'; then
-            echo "::error::Version must match X.Y.Z-(rc|beta|alpha).N, got: $VERSION"
+          # next-channel shorthand: X.Y.Z-next → auto-bump the trailing N
+          if printf '%s' "$INPUT" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+-next$'; then
+            BASE="$INPUT"
+            ESCAPED=$(printf '%s' "$BASE" | sed -e 's/[.[\*^$\\]/\\&/g')
+            LAST_N=$(git ls-remote --tags origin \
+              | awk '{print $2}' \
+              | sed -nE "s|^refs/tags/v${ESCAPED}\.([0-9]+)\$|\1|p" \
+              | sort -n \
+              | tail -1)
+            N=$(( ${LAST_N:-0} + 1 ))
+            VERSION="${BASE}.${N}"
+            echo "next-channel: $INPUT -> $VERSION (last N: ${LAST_N:-none})"
+          elif printf '%s' "$INPUT" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+-(rc|beta|alpha|next|pre|dev)\.[0-9]+$'; then
+            VERSION="$INPUT"
+          else
+            echo "::error::Version must match X.Y.Z-(rc|beta|alpha|next|pre|dev).N or X.Y.Z-next, got: $INPUT"
             exit 1
           fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Resolved version: $VERSION"
 
       - name: Refuse if tag exists
         env:
-          VERSION: ${{ github.event.inputs.version }}
+          VERSION: ${{ steps.resolve.outputs.version }}
         run: |
           if git rev-parse "v$VERSION" >/dev/null 2>&1; then
             echo "::error::Tag v$VERSION already exists locally"
@@ -50,7 +69,7 @@ jobs:
 
       - name: Bump @version in mix.exs
         env:
-          VERSION: ${{ github.event.inputs.version }}
+          VERSION: ${{ steps.resolve.outputs.version }}
         run: |
           if ! grep -qE '^\s*@version "' mix.exs; then
             echo "::error::Could not find @version in mix.exs"
@@ -66,7 +85,7 @@ jobs:
 
       - name: Branch, commit, push
         env:
-          VERSION: ${{ github.event.inputs.version }}
+          VERSION: ${{ steps.resolve.outputs.version }}
         run: |
           BRANCH="prerelease/v$VERSION"
           git checkout -b "$BRANCH"
@@ -77,7 +96,7 @@ jobs:
       - name: Create GitHub tag and pre-release
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
-          VERSION: ${{ github.event.inputs.version }}
+          VERSION: ${{ steps.resolve.outputs.version }}
         run: |
           gh release create "v$VERSION" \
             --prerelease \
