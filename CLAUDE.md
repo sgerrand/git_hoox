@@ -73,6 +73,13 @@ Key modules:
   `**/`, `**`, `*`, `?`. Covered by `test/git_hoox/glob_test.exs` with
   concrete cases, doctests, and StreamData properties (the "match? never
   raises on arbitrary printable inputs" property is the main fuzz harness).
+- `GitHoox.Cmd` — Port-backed replacement for `System.cmd/3` used by every
+  built-in hook (Format, Credo, Test, Dialyzer, Shell). Streams combined
+  stdout/stderr to `:stdio` as each chunk arrives and still returns the
+  same `{output, exit_status}` tuple. Streaming is on by default,
+  controlled by `Application.get_env(:git_hoox, :stream_output, true)` —
+  `test/test_helper.exs` flips it to `false` so the existing hook tests
+  stay clean.
 
 `examples/` holds copy-paste custom hooks (Sobelow, coverage, JIRA ticket).
 They are not packaged with the library — `package.files` in `mix.exs` does

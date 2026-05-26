@@ -13,6 +13,7 @@ defmodule GitHoox.Hooks.Dialyzer do
 
   @behaviour GitHoox.Hook
 
+  alias GitHoox.Cmd
   alias GitHoox.Hooks.Helpers
 
   @impl true
@@ -28,9 +29,7 @@ defmodule GitHoox.Hooks.Dialyzer do
   @impl true
   @spec run(GitHoox.Hook.files(), GitHoox.Hook.opts()) :: GitHoox.hook_result()
   def run(_files, opts) do
-    cmd_opts = [stderr_to_stdout: true, env: Helpers.env_opt(opts)]
-
-    case System.cmd("mix", ["dialyzer", "--quiet"], cmd_opts) do
+    case Cmd.run("mix", ["dialyzer", "--quiet"], env: Helpers.env_opt(opts)) do
       {_, 0} -> :ok
       {out, code} -> {:error, {code, out}}
     end

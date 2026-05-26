@@ -44,6 +44,7 @@ defmodule GitHoox.Hooks.Shell do
 
   @behaviour GitHoox.Hook
 
+  alias GitHoox.Cmd
   alias GitHoox.Git
   alias GitHoox.Hooks.Helpers
 
@@ -109,9 +110,8 @@ defmodule GitHoox.Hooks.Shell do
 
   defp exec(cmd, opts) do
     shell = Keyword.get(opts, :shell, "sh")
-    cmd_opts = [stderr_to_stdout: true, env: Helpers.env_opt(opts)]
 
-    case System.cmd(shell, ["-c", cmd], cmd_opts) do
+    case Cmd.run(shell, ["-c", cmd], env: Helpers.env_opt(opts)) do
       {_, 0} -> :ok
       {out, code} -> {:error, {code, out}}
     end

@@ -247,6 +247,25 @@ GIT_HOOX_ONLY=test git push                 # run only one
 
 Module names match the suffix after `GitHoox.Hooks.` (lowercased).
 
+## Hook Output
+
+Hooks stream their combined stdout/stderr to the terminal as it arrives,
+so a long-running `mix dialyzer` or `mix test` shows progress instead of
+fifteen seconds of silence followed by a single error blob.
+
+Streaming is on by default. To suppress it (for example in scripted
+contexts where you want only the runner's exit code), set the
+application env in your `config/config.exs`:
+
+```elixir
+config :git_hoox, stream_output: false
+```
+
+`parallel: true` mode is unaffected by this flag — hook stdout still
+interleaves chunk-by-chunk per hook, which is workable for two or three
+parallel hooks but gets noisy past that. Prefer serial dispatch if you
+care about readable hook output.
+
 ## Observability
 
 GitHoox emits `:telemetry` events around every stage and every hook, with no

@@ -14,6 +14,7 @@ defmodule GitHoox.Hooks.Format do
 
   @behaviour GitHoox.Hook
 
+  alias GitHoox.Cmd
   alias GitHoox.Hooks.Helpers
 
   @opts_schema [
@@ -44,9 +45,7 @@ defmodule GitHoox.Hooks.Format do
         ["format" | files]
       end
 
-    cmd_opts = [stderr_to_stdout: true, env: Helpers.env_opt(opts)]
-
-    case System.cmd("mix", args, cmd_opts) do
+    case Cmd.run("mix", args, env: Helpers.env_opt(opts)) do
       {_, 0} ->
         {:ok, GitHoox.Git.changed_in_worktree(files)}
 
