@@ -81,6 +81,16 @@ Key modules:
   `test/test_helper.exs` flips it to `false` so the existing hook tests
   stay clean.
 
+`Runner.run_parallel/4` wraps each Task in a `StringIO`-backed group
+leader. Hooks still call `IO.write/2`, but the writes land in the
+per-task buffer; once the task finishes, the buffer is flushed to the
+real group leader in one atomic `IO.write/1`. The mechanism keeps
+parallel output readable (no chunk-level interleaving across hooks) at
+the cost of "live" streaming — nothing prints until the first hook
+exits. Serial dispatch is the path for users who care about live
+progress over tidy output. `ordered: false` on the `Task.async_stream`
+call surfaces fastest-hook-first.
+
 `examples/` holds copy-paste custom hooks (Sobelow, coverage, JIRA ticket).
 They are not packaged with the library — `package.files` in `mix.exs` does
 not list `examples/` — so referenced modules use the `MyApp.Hooks.*`

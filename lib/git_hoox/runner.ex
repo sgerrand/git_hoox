@@ -119,12 +119,33 @@ defmodule GitHoox.Runner do
   defp run_parallel(entries, files, _config, stage) do
     entries
     |> Task.async_stream(
-      fn entry -> {elem(entry, 0), run_one(entry, files, stage)} end,
+      fn entry -> run_with_captured_io(entry, files, stage) end,
       max_concurrency: System.schedulers_online(),
-      ordered: true,
+      ordered: false,
       timeout: :infinity
     )
     |> Enum.map(fn {:ok, outcome} -> outcome end)
+  end
+
+  # Redirect the task's group leader to an in-memory StringIO for the
+  # duration of the hook, then flush the captured output in one atomic
+  # IO.write/1 after the hook finishes. Without this, parallel hooks
+  # interleave each other's stdout chunk-by-chunk on the real device.
+  defp run_with_captured_io(entry, files, stage) do
+    parent_gl = Process.group_leader()
+    {:ok, capture} = StringIO.open("")
+    Process.group_leader(self(), capture)
+
+    try do
+      outcome = {elem(entry, 0), run_one(entry, files, stage)}
+      {_, captured} = StringIO.contents(capture)
+      Process.group_leader(self(), parent_gl)
+      if captured != "", do: IO.write(captured)
+      outcome
+    after
+      Process.group_leader(self(), parent_gl)
+      StringIO.close(capture)
+    end
   end
 
   defp run_one({mod, user_opts}, files, stage) do

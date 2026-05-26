@@ -261,10 +261,11 @@ application env in your `config/config.exs`:
 config :git_hoox, stream_output: false
 ```
 
-`parallel: true` mode is unaffected by this flag — hook stdout still
-interleaves chunk-by-chunk per hook, which is workable for two or three
-parallel hooks but gets noisy past that. Prefer serial dispatch if you
-care about readable hook output.
+`parallel: true` mode buffers each hook's output and flushes it as a
+single block once the hook finishes, in completion order. Output stays
+readable — no chunk-level interleaving — but you pay for it in latency:
+nothing appears on the terminal until the fastest hook completes. If
+live progress matters more than tidy output, stay on serial dispatch.
 
 ## Observability
 
