@@ -77,8 +77,4 @@ defmodule Mix.Tasks.GitHoox.Run do
   defp print_failure({mod, {:error, reason}}) do
     IO.puts(:stderr, "#{inspect(mod)} failed: #{inspect(reason)}")
   end
-
-  defp print_failure(other) do
-    IO.puts(:stderr, "Hook failure: #{inspect(other)}")
-  end
 end
