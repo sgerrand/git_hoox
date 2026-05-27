@@ -24,7 +24,15 @@ defmodule GitHoox.MixProject do
 
   def cli do
     [
-      preferred_envs: [dialyzer: :dev, docs: :dev, "hex.publish": :dev]
+      preferred_envs: [
+        dialyzer: :dev,
+        docs: :dev,
+        "hex.publish": :dev,
+        coveralls: :test,
+        "coveralls.lcov": :test,
+        "coveralls.html": :test,
+        "coveralls.github": :test
+      ]
     ]
   end
 
@@ -40,6 +48,7 @@ defmodule GitHoox.MixProject do
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:dialyxir, "~> 1.4", only: [:dev], runtime: false},
       {:ex_doc, "~> 0.34", only: :dev, runtime: false},
+      {:excoveralls, "~> 0.18", only: :test, runtime: false},
       {:stream_data, "~> 1.1", only: [:dev, :test], runtime: false}
     ]
   end
@@ -98,14 +107,5 @@ defmodule GitHoox.MixProject do
     ]
   end
 
-  defp test_coverage do
-    [
-      summary: [threshold: 100],
-      ignore_modules: [
-        GitHoox.Case,
-        GitHoox.GitFixture,
-        ~r/^GitHoox\.TestHooks/
-      ]
-    ]
-  end
+  defp test_coverage, do: [tool: ExCoveralls]
 end
