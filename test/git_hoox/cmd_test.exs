@@ -80,4 +80,30 @@ defmodule GitHoox.CmdTest do
       assert out =~ missing
     end
   end
+
+  describe "decode_message/6" do
+    test ":data message buffers and signals :cont" do
+      port = make_ref()
+      ref = make_ref()
+      msg = {port, {:data, "chunk"}}
+
+      assert {:cont, ["chunk"]} = Cmd.decode_message(msg, port, ref, [], false, :stdio)
+    end
+
+    test ":exit_status message signals :done with status and flattened output" do
+      port = make_ref()
+      ref = make_ref()
+      msg = {port, {:exit_status, 3}}
+
+      assert {:done, {"ab", 3}} = Cmd.decode_message(msg, port, ref, ["b", "a"], false, :stdio)
+    end
+
+    test ":DOWN message signals :done with exit 1 when port dies without status" do
+      port = make_ref()
+      ref = make_ref()
+      msg = {:DOWN, ref, :port, port, :normal}
+
+      assert {:done, {"", 1}} = Cmd.decode_message(msg, port, ref, [], false, :stdio)
+    end
+  end
 end

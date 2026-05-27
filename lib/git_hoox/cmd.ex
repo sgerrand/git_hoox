@@ -80,20 +80,39 @@ defmodule GitHoox.Cmd do
 
   defp collect(port, ref, chunks, stream?, device) do
     receive do
-      {^port, {:data, data}} ->
-        if stream?, do: IO.write(device, data)
-        collect(port, ref, [data | chunks], stream?, device)
-
-      {^port, {:exit_status, status}} ->
-        Process.demonitor(ref, [:flush])
-        {flatten(chunks), status}
-
-      {:DOWN, ^ref, :port, ^port, _reason} ->
-        # Port closed without delivering :exit_status (rare — e.g. the
-        # child detached its stdio and the BEAM port driver gave up).
-        # Surface as exit 1 so the caller's {out, code} match still works.
-        {flatten(chunks), 1}
+      msg ->
+        case decode_message(msg, port, ref, chunks, stream?, device) do
+          {:cont, chunks} -> collect(port, ref, chunks, stream?, device)
+          {:done, result} -> result
+        end
     end
+  end
+
+  @doc false
+  @spec decode_message(
+          term(),
+          port() | reference(),
+          reference(),
+          [iodata()],
+          boolean(),
+          IO.device()
+        ) ::
+          {:cont, [iodata()]} | {:done, {String.t(), non_neg_integer()}}
+  def decode_message({port, {:data, data}}, port, _ref, chunks, stream?, device) do
+    if stream?, do: IO.write(device, data)
+    {:cont, [data | chunks]}
+  end
+
+  def decode_message({port, {:exit_status, status}}, port, ref, chunks, _stream?, _device) do
+    Process.demonitor(ref, [:flush])
+    {:done, {flatten(chunks), status}}
+  end
+
+  def decode_message({:DOWN, ref, :port, port, _reason}, port, ref, chunks, _stream?, _device) do
+    # Port closed without delivering :exit_status (rare — e.g. the
+    # child detached its stdio and the BEAM port driver gave up).
+    # Surface as exit 1 so the caller's {out, code} match still works.
+    {:done, {flatten(chunks), 1}}
   end
 
   defp flatten(chunks), do: chunks |> Enum.reverse() |> IO.iodata_to_binary()
