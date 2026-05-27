@@ -87,19 +87,19 @@ defmodule GitHoox.Bench do
 
   @doc false
   def handle([:git_hoox, :hook, :stop], %{duration: d}, %{module: mod, result: result}, agent) do
-    is_error = result == :error
-
-    Agent.update(agent, fn map ->
-      Map.update(map, mod, {[d], (is_error && 1) || 0}, fn {natives, errs} ->
-        {[d | natives], errs + ((is_error && 1) || 0)}
-      end)
-    end)
+    record(agent, mod, d, result == :error)
   end
 
   def handle([:git_hoox, :hook, :exception], %{duration: d}, %{module: mod}, agent) do
+    record(agent, mod, d, true)
+  end
+
+  defp record(agent, mod, duration, error?) do
+    bump = if error?, do: 1, else: 0
+
     Agent.update(agent, fn map ->
-      Map.update(map, mod, {[d], 1}, fn {natives, errs} ->
-        {[d | natives], errs + 1}
+      Map.update(map, mod, {[duration], bump}, fn {natives, errs} ->
+        {[duration | natives], errs + bump}
       end)
     end)
   end
