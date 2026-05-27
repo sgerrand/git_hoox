@@ -86,6 +86,27 @@ defmodule GitHoox.RunnerTest do
     assert TestHooks.Counter.count() == 0
   end
 
+  test "parallel + fail_fast halts after first failure", %{repo: dir} do
+    write(dir, "lib/foo.ex", "x\n")
+    stage(dir, ["lib/foo.ex"])
+
+    write_config(dir, """
+    %{
+      hooks: [pre_commit: [
+        {GitHoox.TestHooks.Fail, []},
+        {GitHoox.TestHooks.Fail, [reason: "second"]}
+      ]],
+      parallel: true,
+      fail_fast: true
+    }
+    """)
+
+    in_repo(dir, fn ->
+      assert {:error, failures} = Runner.run(:pre_commit)
+      assert length(failures) == 1
+    end)
+  end
+
   test "non-fail-fast runs all hooks despite failure", %{repo: dir} do
     write(dir, "lib/foo.ex", "x\n")
     stage(dir, ["lib/foo.ex"])

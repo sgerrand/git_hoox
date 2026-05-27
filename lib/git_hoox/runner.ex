@@ -115,7 +115,7 @@ defmodule GitHoox.Runner do
     |> Enum.reverse()
   end
 
-  defp run_parallel(entries, files, _config, stage) do
+  defp run_parallel(entries, files, config, stage) do
     entries
     |> Task.async_stream(
       fn entry -> run_with_captured_io(entry, files, stage) end,
@@ -123,7 +123,16 @@ defmodule GitHoox.Runner do
       ordered: false,
       timeout: :infinity
     )
-    |> Enum.map(fn {:ok, outcome} -> outcome end)
+    |> Enum.reduce_while([], fn {:ok, outcome}, acc ->
+      acc = [outcome | acc]
+
+      if config.fail_fast and failure?(outcome) do
+        {:halt, acc}
+      else
+        {:cont, acc}
+      end
+    end)
+    |> Enum.reverse()
   end
 
   # Redirect the task's group leader to an in-memory StringIO for the
