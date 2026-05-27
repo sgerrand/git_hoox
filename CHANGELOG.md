@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.2](https://github.com/sgerrand/git_hoox/compare/v0.4.1...v0.4.2) (2026-05-27)
+
+
+### Bug Fixes
+
+* **cmd:** redirect child stdin to /dev/null ([74d663c](https://github.com/sgerrand/git_hoox/commit/74d663cd1da3b8c03cb02fd83d639cc2ee8166a7))
+
+
+### Documentation
+
+* **ex_doc:** use README as package docs landing page ([1e7d086](https://github.com/sgerrand/git_hoox/commit/1e7d0864ff51ca8f51bef91e93e4f1eae5a82c81))
+
 ## [0.4.1](https://github.com/sgerrand/git_hoox/compare/v0.4.0...v0.4.1) (2026-05-27)
 
 
