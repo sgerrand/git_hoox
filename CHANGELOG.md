@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.1](https://github.com/sgerrand/git_hoox/compare/v0.4.0...v0.4.1) (2026-05-27)
+
+
+### Refactor
+
+* **bench:** collapse telemetry handlers via record/3 ([a39cc29](https://github.com/sgerrand/git_hoox/commit/a39cc29f67045ba9796edd19c6cfec329d7b52b0))
+* **cmd:** expose decode_message/6 to cover the :DOWN branch ([337410c](https://github.com/sgerrand/git_hoox/commit/337410cdb22e6f6b1dc5dc6d031edd75eb921724))
+* **config:** extract validate_with/4 and memoize global keys ([20d5ae0](https://github.com/sgerrand/git_hoox/commit/20d5ae05e49a9fc057d80769559eff61ab655469))
+* **doctor:** fold shim existence and mode into one File.stat ([18e7374](https://github.com/sgerrand/git_hoox/commit/18e7374d07e9a08c6adfad1c2a4d75765b4276fb))
+* **doctor:** reuse Installer.managed?/1 and hook_names/0 ([dfa93e9](https://github.com/sgerrand/git_hoox/commit/dfa93e98827aaf41f5b01cbc798d3c76e4c127dc))
+* **hooks/shell:** drive expand/2 from a token table ([102dbda](https://github.com/sgerrand/git_hoox/commit/102dbdaa36dd8197ba26a1af3ff4525163705bf7))
+* **mix/bench:** route stage through Schema; derive table from [@cols](https://github.com/cols) ([302f620](https://github.com/sgerrand/git_hoox/commit/302f6206193e7b4c20cab85c9fda7c69b7b39321))
+* **mix/run:** drop unreachable print_failure catch-all ([379d571](https://github.com/sgerrand/git_hoox/commit/379d57176db0cf83294705b25d030cae40ab0681))
+* **schema:** add parse_stage/1 for kebab-or-snake input ([be8bdd0](https://github.com/sgerrand/git_hoox/commit/be8bdd0f92c56c1a142be4b268a8d2c0a350d587))
+
 ## [0.4.0](https://github.com/sgerrand/git_hoox/compare/v0.3.0...v0.4.0) (2026-05-27)
 
 
