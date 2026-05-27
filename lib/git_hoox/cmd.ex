@@ -74,19 +74,29 @@ defmodule GitHoox.Cmd do
         ]
       )
 
-    collect(port, [], stream?, device)
+    ref = Port.monitor(port)
+    collect(port, ref, [], stream?, device)
   end
 
-  defp collect(port, chunks, stream?, device) do
+  defp collect(port, ref, chunks, stream?, device) do
     receive do
       {^port, {:data, data}} ->
         if stream?, do: IO.write(device, data)
-        collect(port, [data | chunks], stream?, device)
+        collect(port, ref, [data | chunks], stream?, device)
 
       {^port, {:exit_status, status}} ->
-        {chunks |> Enum.reverse() |> IO.iodata_to_binary(), status}
+        Process.demonitor(ref, [:flush])
+        {flatten(chunks), status}
+
+      {:DOWN, ^ref, :port, ^port, _reason} ->
+        # Port closed without delivering :exit_status (rare — e.g. the
+        # child detached its stdio and the BEAM port driver gave up).
+        # Surface as exit 1 so the caller's {out, code} match still works.
+        {flatten(chunks), 1}
     end
   end
+
+  defp flatten(chunks), do: chunks |> Enum.reverse() |> IO.iodata_to_binary()
 
   defp default_stream? do
     Application.get_env(:git_hoox, :stream_output, true)
