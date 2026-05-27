@@ -13,6 +13,7 @@ defmodule Mix.Tasks.GitHoox.Run do
 
   use Mix.Task
 
+  alias GitHoox.Config.Error, as: ConfigError
   alias GitHoox.Config.Schema
 
   @impl Mix.Task
@@ -57,6 +58,10 @@ defmodule Mix.Tasks.GitHoox.Run do
   end
 
   defp read_stdin(_), do: nil
+
+  defp print_failure({:config, {:error, reason}}) do
+    IO.puts(:stderr, ConfigError.format(reason))
+  end
 
   defp print_failure({mod, {:error, {:timeout, ms}}}) do
     IO.puts(:stderr, "#{inspect(mod)} timed out after #{ms}ms")

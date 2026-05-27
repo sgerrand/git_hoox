@@ -103,20 +103,16 @@ defmodule Mix.Tasks.GitHoox.RunTest do
     assert err =~ "crashed:"
   end
 
-  test "config failure prints catch-all `Hook failure:` line", %{repo: dir} do
+  test "config failure prints a ConfigError-formatted message to stderr", %{repo: dir} do
     # no .git_hoox.exs → Config.load returns {:error, {:missing_config, _}}.
-    # Runner wraps that as {:error, [{:config, reason}]}, which the task's
-    # `other` print_failure clause renders.
+    # Runner wraps that as {:error, [{:config, {:error, reason}}]}, which the
+    # task's :config print_failure clause renders via ConfigError.format/1.
     err =
       capture_io(:stderr, fn ->
-        catch_exit(
-          capture_io(fn ->
-            in_repo(dir, fn -> RunTask.run(["pre-commit"]) end)
-          end)
-        )
+        catch_exit(in_repo(dir, fn -> RunTask.run(["pre-commit"]) end))
       end)
 
-    assert err =~ "Hook failure:"
+    assert err =~ "Config not found"
   end
 
   test "pre-push reads stdin and uses it for file resolution", %{repo: dir} do

@@ -8,7 +8,6 @@ defmodule GitHoox.Runner do
   """
 
   alias GitHoox.Config
-  alias GitHoox.Config.Error, as: ConfigError
   alias GitHoox.Git
   alias GitHoox.Glob
   alias GitHoox.Hook
@@ -38,9 +37,7 @@ defmodule GitHoox.Runner do
         execute(entries, files, config, stage)
       end)
     else
-      {:error, reason} ->
-        IO.puts(:stderr, ConfigError.format(reason))
-        {:error, [{:config, reason}]}
+      {:error, reason} -> {:error, [{:config, {:error, reason}}]}
     end
   end
 
