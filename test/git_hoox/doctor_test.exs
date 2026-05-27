@@ -46,6 +46,21 @@ defmodule GitHoox.DoctorTest do
     assert shim_check.detail =~ "foreign"
   end
 
+  test "managed shim without exec bit surfaces as error", %{repo: dir} do
+    in_repo(dir, fn -> {:ok, _} = GitHoox.Installer.install() end)
+
+    pre_commit = Path.join(dir, ".git/hooks/pre-commit")
+    File.chmod!(pre_commit, 0o644)
+
+    checks = in_repo(dir, fn -> Doctor.run() end)
+
+    shim_check = by_name(checks, "shims")
+    assert shim_check.status == :error
+    assert shim_check.detail =~ "executable bit"
+    assert shim_check.detail =~ "pre-commit"
+    assert Doctor.aggregate(checks) == :error
+  end
+
   test "invalid config surfaces as error", %{repo: dir} do
     File.write!(Path.join(dir, ".git_hoox.exs"), "%{hooks: [bogus_stage: []]}")
 

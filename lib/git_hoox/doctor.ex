@@ -68,8 +68,8 @@ defmodule GitHoox.Doctor do
   defp check_shims do
     case Git.hooks_dir() do
       {:ok, dir} ->
-        {managed, foreign, missing} = classify_shims(dir)
-        summarize_shims(managed, foreign, missing)
+        {managed, foreign, missing, non_exec} = classify_shims(dir)
+        summarize_shims(managed, foreign, missing, non_exec)
 
       _ ->
         error("shims", "hooks directory unavailable")
@@ -77,23 +77,46 @@ defmodule GitHoox.Doctor do
   end
 
   defp classify_shims(dir) do
-    Enum.reduce(@hooks, {[], [], []}, fn hook, {m, f, miss} ->
-      path = Path.join(dir, hook)
-
-      cond do
-        not File.exists?(path) -> {m, f, [hook | miss]}
-        managed?(path) -> {[hook | m], f, miss}
-        true -> {m, [hook | f], miss}
-      end
+    Enum.reduce(@hooks, {[], [], [], []}, fn hook, acc ->
+      hook |> shim_kind(dir) |> bucket(hook, acc)
     end)
   end
 
-  defp summarize_shims(managed, foreign, missing) do
+  defp shim_kind(hook, dir) do
+    path = Path.join(dir, hook)
+
+    cond do
+      not File.exists?(path) -> :missing
+      not managed?(path) -> :foreign
+      not executable?(path) -> :non_exec
+      true -> :managed
+    end
+  end
+
+  defp bucket(:managed, hook, {m, f, miss, nx}), do: {[hook | m], f, miss, nx}
+  defp bucket(:foreign, hook, {m, f, miss, nx}), do: {m, [hook | f], miss, nx}
+  defp bucket(:missing, hook, {m, f, miss, nx}), do: {m, f, [hook | miss], nx}
+  defp bucket(:non_exec, hook, {m, f, miss, nx}), do: {[hook | m], f, miss, [hook | nx]}
+
+  defp executable?(path) do
+    case File.stat(path) do
+      {:ok, %File.Stat{mode: mode}} -> Bitwise.band(mode, 0o111) != 0
+      _ -> false
+    end
+  end
+
+  defp summarize_shims(managed, foreign, missing, non_exec) do
     cond do
       foreign != [] ->
         warn(
           "shims",
           "foreign hooks present: #{Enum.join(foreign, ", ")} (run mix git_hoox.install --force to take over)"
+        )
+
+      non_exec != [] ->
+        error(
+          "shims",
+          "managed shims missing executable bit: #{Enum.join(non_exec, ", ")} (chmod +x or re-run mix git_hoox.install)"
         )
 
       managed == [] ->
