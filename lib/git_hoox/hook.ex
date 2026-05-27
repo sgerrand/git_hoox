@@ -55,4 +55,20 @@ defmodule GitHoox.Hook do
   @callback opts_schema() :: keyword()
 
   @optional_callbacks default_opts: 0, opts_schema: 0
+
+  @doc """
+  Merge a hook module's `default_opts/0` with user-supplied opts.
+
+  User opts win on conflict. Modules without `default_opts/0` contribute
+  an empty list.
+  """
+  @spec merge_defaults(module(), opts()) :: opts()
+  def merge_defaults(mod, user_opts) when is_atom(mod) and is_list(user_opts) do
+    defaults =
+      if function_exported?(mod, :default_opts, 0),
+        do: mod.default_opts(),
+        else: []
+
+    Keyword.merge(defaults, user_opts)
+  end
 end

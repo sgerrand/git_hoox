@@ -11,6 +11,7 @@ defmodule GitHoox.Runner do
   alias GitHoox.Config.Error, as: ConfigError
   alias GitHoox.Git
   alias GitHoox.Glob
+  alias GitHoox.Hook
   alias GitHoox.Telemetry
 
   @typedoc "One hook's exit summary."
@@ -157,7 +158,7 @@ defmodule GitHoox.Runner do
   end
 
   defp run_one({mod, user_opts}, files, stage) do
-    opts = mod |> merge_defaults(user_opts) |> Keyword.put(:__stage__, stage)
+    opts = mod |> Hook.merge_defaults(user_opts) |> Keyword.put(:__stage__, stage)
     matched = filter_files(files, Keyword.fetch!(opts, :files))
 
     if matched == [] do
@@ -199,15 +200,6 @@ defmodule GitHoox.Runner do
     after
       Process.flag(:trap_exit, prior_trap)
     end
-  end
-
-  defp merge_defaults(mod, user_opts) do
-    defaults =
-      if function_exported?(mod, :default_opts, 0),
-        do: mod.default_opts(),
-        else: []
-
-    Keyword.merge(defaults, user_opts)
   end
 
   defp filter_files([], _patterns), do: []

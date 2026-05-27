@@ -8,6 +8,7 @@ defmodule GitHoox.Config do
   """
 
   alias GitHoox.Config.Schema
+  alias GitHoox.Hook
 
   @type load_error :: GitHoox.Config.Error.t()
 
@@ -111,7 +112,7 @@ defmodule GitHoox.Config do
   end
 
   defp validate_opts(stage, mod, opts) do
-    merged = merge_defaults(mod, opts)
+    merged = Hook.merge_defaults(mod, opts)
 
     with :ok <- validate_global(stage, mod, merged) do
       validate_hook_specific(stage, mod, merged)
@@ -140,14 +141,5 @@ defmodule GitHoox.Config do
     else
       :ok
     end
-  end
-
-  defp merge_defaults(mod, opts) do
-    defaults =
-      if function_exported?(mod, :default_opts, 0),
-        do: mod.default_opts(),
-        else: []
-
-    Keyword.merge(defaults, opts)
   end
 end

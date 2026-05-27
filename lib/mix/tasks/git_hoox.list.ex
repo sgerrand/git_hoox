@@ -17,6 +17,7 @@ defmodule Mix.Tasks.GitHoox.List do
 
   alias GitHoox.Config
   alias GitHoox.Config.Error, as: ConfigError
+  alias GitHoox.Hook
 
   @impl Mix.Task
   @spec run([String.t()]) :: :ok | no_return()
@@ -57,20 +58,11 @@ defmodule Mix.Tasks.GitHoox.List do
   end
 
   defp print_entry({mod, user_opts}) do
-    merged = merge(mod, user_opts)
+    merged = Hook.merge_defaults(mod, user_opts)
     Mix.shell().info("  #{inspect(mod)}")
 
     Enum.each(merged, fn {k, v} ->
       Mix.shell().info("    #{k}: #{inspect(v)}")
     end)
-  end
-
-  defp merge(mod, user_opts) do
-    defaults =
-      if function_exported?(mod, :default_opts, 0),
-        do: mod.default_opts(),
-        else: []
-
-    Keyword.merge(defaults, user_opts)
   end
 end
