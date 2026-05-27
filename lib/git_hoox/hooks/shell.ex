@@ -111,41 +111,32 @@ defmodule GitHoox.Hooks.Shell do
   defp exec(cmd, opts) do
     shell = Keyword.get(opts, :shell, "sh")
 
-    case Cmd.run(shell, ["-c", cmd], env: Helpers.env_opt(opts)) do
-      {_, 0} -> :ok
-      {out, code} -> {:error, {code, out}}
-    end
+    Cmd.run(shell, ["-c", cmd], env: Helpers.env_opt(opts)) |> Helpers.to_result()
   end
 
   defp expand(template, files) do
-    with {:ok, t1} <- replace_files(template, files),
-         {:ok, t2} <- replace_push_files(t1, files),
-         {:ok, t3} <- replace_staged_files(t2) do
-      replace_all_files(t3)
-    end
+    Enum.reduce_while(
+      [
+        {"{files}", fn -> {:ok, files} end},
+        {"{push_files}", fn -> {:ok, files} end},
+        {"{staged_files}", &staged_resolver/0},
+        {"{all_files}", &all_resolver/0}
+      ],
+      {:ok, template},
+      fn {token, resolver}, {:ok, acc} ->
+        case replace_token(acc, token, resolver) do
+          {:ok, next} -> {:cont, {:ok, next}}
+          {:skip, _} = skip -> {:halt, skip}
+        end
+      end
+    )
   end
 
-  defp replace_files(template, files) do
-    if uses_token?(template, "{files}") do
-      {:ok, String.replace(template, "{files}", join(files))}
-    else
-      {:ok, template}
-    end
-  end
-
-  defp replace_push_files(template, files) do
-    if uses_token?(template, "{push_files}") do
-      {:ok, String.replace(template, "{push_files}", join(files))}
-    else
-      {:ok, template}
-    end
-  end
-
-  defp replace_staged_files(template) do
-    if uses_token?(template, "{staged_files}") do
-      case Git.staged_files() do
-        {:ok, []} -> {:skip, :no_staged_files}
-        {:ok, staged} -> {:ok, String.replace(template, "{staged_files}", join(staged))}
+  defp replace_token(template, token, resolver) do
+    if uses_token?(template, token) do
+      case resolver.() do
+        {:ok, []} when token == "{staged_files}" -> {:skip, :no_staged_files}
+        {:ok, list} -> {:ok, String.replace(template, token, join(list))}
         _ -> {:ok, template}
       end
     else
@@ -153,16 +144,8 @@ defmodule GitHoox.Hooks.Shell do
     end
   end
 
-  defp replace_all_files(template) do
-    if uses_token?(template, "{all_files}") do
-      case Git.all_files() do
-        {:ok, all} -> {:ok, String.replace(template, "{all_files}", join(all))}
-        _ -> {:ok, template}
-      end
-    else
-      {:ok, template}
-    end
-  end
+  defp staged_resolver, do: Git.staged_files()
+  defp all_resolver, do: Git.all_files()
 
   defp uses_token?(template, token), do: String.contains?(template, token)
 
