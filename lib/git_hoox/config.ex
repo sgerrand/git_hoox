@@ -43,6 +43,8 @@ defmodule GitHoox.Config do
   defp normalize(raw) when is_map(raw), do: Map.to_list(raw)
   defp normalize(raw) when is_list(raw), do: raw
 
+  @global_keys Schema.hook_opts_schema() |> Keyword.keys()
+
   defp validate_top(raw) do
     case NimbleOptions.validate(raw, Schema.top_schema()) do
       {:ok, validated} ->
@@ -120,26 +122,25 @@ defmodule GitHoox.Config do
   end
 
   defp validate_global(stage, mod, merged) do
-    known = Schema.hook_opts_schema() |> Keyword.keys()
-    to_validate = Keyword.take(merged, known)
-
-    case NimbleOptions.validate(to_validate, Schema.hook_opts_schema()) do
-      {:ok, _} -> :ok
-      {:error, err} -> {:error, {:invalid_hook_opts, stage, mod, Exception.message(err)}}
-    end
+    merged
+    |> Keyword.take(@global_keys)
+    |> validate_with(Schema.hook_opts_schema(), stage, mod)
   end
 
   defp validate_hook_specific(stage, mod, merged) do
     if function_exported?(mod, :opts_schema, 0) do
-      known = Schema.hook_opts_schema() |> Keyword.keys()
-      extras = Keyword.drop(merged, known)
-
-      case NimbleOptions.validate(extras, mod.opts_schema()) do
-        {:ok, _} -> :ok
-        {:error, err} -> {:error, {:invalid_hook_opts, stage, mod, Exception.message(err)}}
-      end
+      merged
+      |> Keyword.drop(@global_keys)
+      |> validate_with(mod.opts_schema(), stage, mod)
     else
       :ok
+    end
+  end
+
+  defp validate_with(opts, schema, stage, mod) do
+    case NimbleOptions.validate(opts, schema) do
+      {:ok, _} -> :ok
+      {:error, err} -> {:error, {:invalid_hook_opts, stage, mod, Exception.message(err)}}
     end
   end
 end
