@@ -165,8 +165,8 @@ defmodule GitHoox.Installer do
   defp backup(path) do
     ts =
       DateTime.utc_now()
+      |> DateTime.truncate(:second)
       |> DateTime.to_iso8601(:basic)
-      |> String.replace(~r/\.\d+Z$/, "Z")
 
     File.rename!(path, "#{path}.backup.#{ts}")
   end
