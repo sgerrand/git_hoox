@@ -20,21 +20,28 @@ defmodule Mix.Tasks.GitHoox.Bench do
   use Mix.Task
 
   alias GitHoox.Bench
+  alias GitHoox.Config.Schema
 
   @switches [stage: :string, runs: :integer]
   @aliases [s: :stage, n: :runs]
+
+  @cols [
+    {"module", 36, :left},
+    {"runs", 5, :right},
+    {"errors", 6, :right},
+    {"p50", 9, :right},
+    {"p95", 9, :right},
+    {"max", 9, :right},
+    {"mean", 9, :right},
+    {"total", 9, :right}
+  ]
 
   @impl Mix.Task
   @spec run([String.t()]) :: :ok
   def run(argv) do
     {opts, _, _} = OptionParser.parse(argv, switches: @switches, aliases: @aliases)
 
-    stage =
-      opts
-      |> Keyword.get(:stage, "pre_commit")
-      |> String.replace("-", "_")
-      |> String.to_atom()
-
+    stage = parse_stage!(Keyword.get(opts, :stage, "pre_commit"))
     runs = Keyword.get(opts, :runs, 5)
 
     Mix.shell().info("Benchmarking #{stage} (#{runs} runs)...")
@@ -45,6 +52,13 @@ defmodule Mix.Tasks.GitHoox.Bench do
     |> print()
 
     :ok
+  end
+
+  defp parse_stage!(stage) do
+    case Schema.parse_stage(stage) do
+      {:ok, atom} -> atom
+      :error -> Mix.raise("Unknown git_hoox stage: #{stage}")
+    end
   end
 
   defp print([]) do
@@ -58,41 +72,32 @@ defmodule Mix.Tasks.GitHoox.Bench do
   end
 
   defp header do
-    "#{pad("module", 36)} #{pad("runs", 5)} #{pad("errors", 6)} #{pad("p50", 9)} #{pad("p95", 9)} #{pad("max", 9)} #{pad("mean", 9)} #{pad("total", 9)}"
+    Enum.map_join(@cols, " ", fn {label, w, _} -> String.pad_trailing(label, w) end)
   end
 
   defp separator do
-    String.duplicate("-", 36) <>
-      " " <>
-      String.duplicate("-", 5) <>
-      " " <>
-      String.duplicate("-", 6) <>
-      " " <>
-      String.duplicate("-", 9) <>
-      " " <>
-      String.duplicate("-", 9) <>
-      " " <>
-      String.duplicate("-", 9) <>
-      " " <>
-      String.duplicate("-", 9) <>
-      " " <> String.duplicate("-", 9)
+    Enum.map_join(@cols, " ", fn {_, w, _} -> String.duplicate("-", w) end)
   end
 
   defp print_row(r) do
-    Mix.shell().info(
-      "#{pad(inspect(r.module), 36)} #{pad_int(r.runs, 5)} #{pad_int(r.errors, 6)} " <>
-        "#{pad_ms(r.p50_ms, 9)} #{pad_ms(r.p95_ms, 9)} #{pad_ms(r.max_ms, 9)} " <>
-        "#{pad_ms(r.mean_ms, 9)} #{pad_ms(r.total_ms, 9)}"
-    )
+    [
+      inspect(r.module),
+      Integer.to_string(r.runs),
+      Integer.to_string(r.errors),
+      format_ms(r.p50_ms),
+      format_ms(r.p95_ms),
+      format_ms(r.max_ms),
+      format_ms(r.mean_ms),
+      format_ms(r.total_ms)
+    ]
+    |> Enum.zip(@cols)
+    |> Enum.map_join(" ", fn {val, {_, w, align}} -> pad(val, w, align) end)
+    |> Mix.shell().info()
   end
 
-  defp pad(s, w), do: String.pad_trailing(s, w)
-  defp pad_int(n, w), do: String.pad_leading(Integer.to_string(n), w)
+  defp pad(s, w, :left), do: String.pad_trailing(s, w)
+  defp pad(s, w, :right), do: String.pad_leading(s, w)
 
-  defp pad_ms(ms, w) do
-    String.pad_leading("#{round_ms(ms)}ms", w)
-  end
-
-  defp round_ms(ms) when is_integer(ms), do: ms
-  defp round_ms(ms) when is_float(ms), do: Float.round(ms, 1)
+  defp format_ms(ms) when is_integer(ms), do: "#{ms}ms"
+  defp format_ms(ms) when is_float(ms), do: "#{Float.round(ms, 1)}ms"
 end

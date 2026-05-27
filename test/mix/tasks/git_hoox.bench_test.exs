@@ -64,6 +64,14 @@ defmodule Mix.Tasks.GitHoox.BenchTest do
     assert out =~ "no hooks executed"
   end
 
+  test "unknown stage raises Mix.Error", %{repo: dir} do
+    in_repo(dir, fn ->
+      assert_raise Mix.Error, ~r/Unknown git_hoox stage: bogus/, fn ->
+        BenchTask.run(["--stage", "bogus"])
+      end
+    end)
+  end
+
   test "errors column reflects crashed hooks", %{repo: dir} do
     write(dir, "lib/foo.ex", "x\n")
     stage(dir, ["lib/foo.ex"])
