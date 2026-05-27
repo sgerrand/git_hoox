@@ -101,19 +101,18 @@ defmodule GitHoox.Runner do
   end
 
   defp run_serial(entries, files, config, stage) do
-    Enum.reduce_while(entries, [], fn entry, acc ->
+    entries
+    |> Enum.reduce_while([], fn entry, acc ->
       result = run_one(entry, files, stage)
       acc = [{elem(entry, 0), result} | acc]
 
       if config.fail_fast and failure?({elem(entry, 0), result}) do
-        {:halt, Enum.reverse(acc)}
+        {:halt, acc}
       else
         {:cont, acc}
       end
     end)
-    |> case do
-      list when is_list(list) -> Enum.reverse(list)
-    end
+    |> Enum.reverse()
   end
 
   defp run_parallel(entries, files, _config, stage) do
