@@ -61,8 +61,8 @@ defmodule GitHoox.Hooks.TestHookTest do
     end)
   end
 
-  test "scope :related with no resolvable tests still runs mix test", %{repo: dir} do
-    install_fake_mix(dir, "exit 0\n")
+  test "scope :related skips mix test entirely when no related tests exist", %{repo: dir} do
+    install_fake_mix(dir, "echo SHOULD_NOT_RUN >&2\nexit 7\n")
 
     in_repo(dir, fn ->
       assert :ok = TestHook.run(["lib/never.ex"], scope: :related)

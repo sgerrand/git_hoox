@@ -11,6 +11,14 @@ defmodule GitHoox.Hooks.Test do
     * `stage_fixed: false`
     * `files: ~w(**/*.ex **/*.exs)`
     * `scope: :all`
+
+  ## `:related` with no resolvable tests
+
+  When `scope: :related` is selected and `related_test_files/1` produces
+  an empty list (no `lib/foo.ex → test/foo_test.exs` mappings exist on
+  disk), the hook returns `:ok` without invoking `mix test`. Falling
+  through to a bare `mix test` would silently run the entire suite,
+  which is the opposite of what the caller asked for.
   """
 
   @behaviour GitHoox.Hook
@@ -39,13 +47,21 @@ defmodule GitHoox.Hooks.Test do
   @impl true
   @spec run(GitHoox.Hook.files(), GitHoox.Hook.opts()) :: GitHoox.hook_result()
   def run(files, opts) do
-    args =
-      case Keyword.get(opts, :scope, :all) do
-        :stale -> ["test", "--stale"]
-        :related -> ["test" | related_test_files(files)]
-        _ -> ["test"]
-      end
+    case Keyword.get(opts, :scope, :all) do
+      :stale -> exec(["test", "--stale"], opts)
+      :related -> run_related(files, opts)
+      _ -> exec(["test"], opts)
+    end
+  end
 
+  defp run_related(files, opts) do
+    case related_test_files(files) do
+      [] -> :ok
+      related -> exec(["test" | related], opts)
+    end
+  end
+
+  defp exec(args, opts) do
     case Cmd.run("mix", args, env: Helpers.env_opt(opts)) do
       {_, 0} -> :ok
       {out, code} -> {:error, {code, out}}
