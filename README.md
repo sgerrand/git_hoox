@@ -1,5 +1,6 @@
 # GitHoox
 
+[![Build Status](https://github.com/sgerrand/git_hoox/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/sgerrand/git_hoox/actions/workflows/ci.yml)
 [![Coverage Status](https://coveralls.io/repos/github/sgerrand/git_hoox/badge.svg?branch=main)](https://coveralls.io/github/sgerrand/git_hoox?branch=main)
 
 Git hooks in pure Elixir. Configurable file globs, per-hook options, built-in
