@@ -36,7 +36,14 @@ defmodule GitHoox.Glob do
     Regex.match?(compile(pattern), file)
   end
 
-  defp compile(pattern) do
+  @doc """
+  Compile `pattern` to an anchored `Regex.t()`.
+
+  Call this once per pattern when matching against many files — otherwise
+  use `match?/2`, which compiles on every call.
+  """
+  @spec compile(GitHoox.glob()) :: Regex.t()
+  def compile(pattern) when is_binary(pattern) do
     body =
       pattern
       |> Regex.escape()

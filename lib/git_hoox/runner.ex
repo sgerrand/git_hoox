@@ -210,8 +210,11 @@ defmodule GitHoox.Runner do
     Keyword.merge(defaults, user_opts)
   end
 
+  defp filter_files([], _patterns), do: []
+
   defp filter_files(files, patterns) do
-    Enum.filter(files, fn f -> Enum.any?(patterns, &Glob.match?(f, &1)) end)
+    regexes = Enum.map(patterns, &Glob.compile/1)
+    Enum.filter(files, fn f -> Enum.any?(regexes, &Regex.match?(&1, f)) end)
   end
 
   defp maybe_restage({:ok, modified}, opts) when is_list(modified) do
