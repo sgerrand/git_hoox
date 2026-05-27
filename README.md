@@ -2,6 +2,8 @@
 
 [![Build Status](https://github.com/sgerrand/git_hoox/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/sgerrand/git_hoox/actions/workflows/ci.yml)
 [![Coverage Status](https://coveralls.io/repos/github/sgerrand/git_hoox/badge.svg?branch=main)](https://coveralls.io/github/sgerrand/git_hoox?branch=main)
+[![Hex Version](https://img.shields.io/hexpm/v/git_hoox.svg)](https://hex.pm/packages/git_hoox)
+[![Hex Docs](https://img.shields.io/badge/docs-hexpm-blue.svg)](https://hexdocs.pm/git_hoox/)
 
 Git hooks in pure Elixir. Configurable file globs, per-hook options, built-in
 support for `mix format`, Credo, ExUnit, and Dialyzer.
