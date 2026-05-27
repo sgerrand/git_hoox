@@ -74,6 +74,7 @@ defmodule GitHoox.ResidualsTest do
       path = Path.join(dir, ".git/hooks/pre-commit")
       File.mkdir_p!(Path.dirname(path))
       File.write!(path, "#!/bin/sh\n# git_hoox managed\nexec mix git_hoox.run pre-commit\n")
+      File.chmod!(path, 0o755)
 
       checks = in_repo(dir, fn -> Doctor.run() end)
       shim_check = Enum.find(checks, &(&1.name == "shims"))
