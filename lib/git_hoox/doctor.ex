@@ -19,11 +19,6 @@ defmodule GitHoox.Doctor do
           detail: String.t()
         }
 
-  @hooks ~w(pre-commit prepare-commit-msg commit-msg post-commit
-            pre-rebase post-checkout post-merge pre-push)
-
-  @marker "# git_hoox managed"
-
   @doc "Run every diagnostic in order."
   @spec run() :: [check()]
   def run do
@@ -77,7 +72,7 @@ defmodule GitHoox.Doctor do
   end
 
   defp classify_shims(dir) do
-    Enum.reduce(@hooks, {[], [], [], []}, fn hook, acc ->
+    Enum.reduce(Installer.hook_names(), {[], [], [], []}, fn hook, acc ->
       hook |> shim_kind(dir) |> bucket(hook, acc)
     end)
   end
@@ -87,7 +82,7 @@ defmodule GitHoox.Doctor do
 
     cond do
       not File.exists?(path) -> :missing
-      not managed?(path) -> :foreign
+      not Installer.managed?(path) -> :foreign
       not executable?(path) -> :non_exec
       true -> :managed
     end
@@ -127,13 +122,6 @@ defmodule GitHoox.Doctor do
 
       true ->
         ok("shims", "#{length(managed)} managed shims present (#{length(missing)} unowned)")
-    end
-  end
-
-  defp managed?(path) do
-    case File.read(path) do
-      {:ok, content} -> String.contains?(content, @marker)
-      _ -> false
     end
   end
 

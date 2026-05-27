@@ -33,6 +33,19 @@ defmodule GitHoox.Installer do
   @spec config_filename() :: String.t()
   def config_filename, do: @config_filename
 
+  @doc "Kebab-case names of every git stage git_hoox manages."
+  @spec hook_names() :: [String.t()]
+  def hook_names, do: @hooks
+
+  @doc "True if the file at `path` is a git_hoox-managed shim."
+  @spec managed?(Path.t()) :: boolean()
+  def managed?(path) do
+    case File.read(path) do
+      {:ok, content} -> String.contains?(content, @marker)
+      _ -> false
+    end
+  end
+
   @default_config """
   %{
     hooks: [
@@ -140,13 +153,6 @@ defmodule GitHoox.Installer do
         {:error,
          {:exists, path,
           "Hook exists and is not managed by git_hoox. Re-run with --force to backup and overwrite."}}
-    end
-  end
-
-  defp managed?(path) do
-    case File.read(path) do
-      {:ok, content} -> String.contains?(content, @marker)
-      _ -> false
     end
   end
 
