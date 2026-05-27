@@ -62,10 +62,7 @@ defmodule GitHoox.Hooks.Test do
   end
 
   defp exec(args, opts) do
-    case Cmd.run("mix", args, env: Helpers.env_opt(opts)) do
-      {_, 0} -> :ok
-      {out, code} -> {:error, {code, out}}
-    end
+    Cmd.run("mix", args, env: Helpers.env_opt(opts)) |> Helpers.to_result()
   end
 
   defp related_test_files(files) do
@@ -75,9 +72,12 @@ defmodule GitHoox.Hooks.Test do
     |> Enum.filter(&File.exists?/1)
   end
 
+  @lib_prefix ~r{^lib/}
+  @ex_suffix ~r{\.ex$}
+
   defp map_to_test(path) do
     path
-    |> String.replace(~r{^lib/}, "test/")
-    |> String.replace(~r{\.ex$}, "_test.exs")
+    |> String.replace(@lib_prefix, "test/")
+    |> String.replace(@ex_suffix, "_test.exs")
   end
 end
