@@ -12,4 +12,13 @@ defmodule GitHoox.Hooks.Helpers do
       map when is_map(map) -> Map.to_list(map)
     end
   end
+
+  @doc """
+  Map a `{output, exit_status}` tuple from `GitHoox.Cmd.run/3` into the
+  hook result contract: `:ok` on exit 0, `{:error, {code, out}}` otherwise.
+  """
+  @spec to_result({String.t(), non_neg_integer()}) ::
+          :ok | {:error, {non_neg_integer(), String.t()}}
+  def to_result({_, 0}), do: :ok
+  def to_result({out, code}), do: {:error, {code, out}}
 end

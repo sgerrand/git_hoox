@@ -43,9 +43,6 @@ defmodule GitHoox.Hooks.Credo do
     strict = if Keyword.get(opts, :strict, false), do: ["--strict"], else: []
     args = ["credo"] ++ strict ++ ["--files-included" | files]
 
-    case Cmd.run("mix", args, env: Helpers.env_opt(opts)) do
-      {_, 0} -> :ok
-      {out, code} -> {:error, {code, out}}
-    end
+    Cmd.run("mix", args, env: Helpers.env_opt(opts)) |> Helpers.to_result()
   end
 end

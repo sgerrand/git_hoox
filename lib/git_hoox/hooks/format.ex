@@ -46,11 +46,8 @@ defmodule GitHoox.Hooks.Format do
       end
 
     case Cmd.run("mix", args, env: Helpers.env_opt(opts)) do
-      {_, 0} ->
-        {:ok, GitHoox.Git.changed_in_worktree(files)}
-
-      {out, code} ->
-        {:error, {code, out}}
+      {_, 0} -> {:ok, GitHoox.Git.changed_in_worktree(files)}
+      tuple -> Helpers.to_result(tuple)
     end
   end
 end
