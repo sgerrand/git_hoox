@@ -73,12 +73,11 @@ defmodule GitHoox.CmdTest do
   end
 
   describe "errors" do
-    test "raises when executable cannot be resolved" do
-      assert_raise RuntimeError, ~r/could not find executable/, fn ->
-        Cmd.run("definitely-not-a-real-binary-#{System.unique_integer([:positive])}", [],
-          stream: false
-        )
-      end
+    test "returns 127 with a message when executable cannot be resolved" do
+      missing = "definitely-not-a-real-binary-#{System.unique_integer([:positive])}"
+      assert {out, 127} = Cmd.run(missing, [], stream: false)
+      assert out =~ "executable not found"
+      assert out =~ missing
     end
   end
 end

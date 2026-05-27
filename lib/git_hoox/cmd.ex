@@ -34,10 +34,24 @@ defmodule GitHoox.Cmd do
   @doc """
   Run `command` with `args`, returning `{output, exit_status}`.
 
-  Raises `RuntimeError` if `command` cannot be resolved on `$PATH`.
+  If `command` cannot be resolved on `$PATH`, returns
+  `{"git_hoox: executable not found: <command>\n", 127}` so callers can
+  keep the standard `{out, code}` match shape. 127 is the POSIX
+  command-not-found exit code.
   """
   @spec run(String.t(), [String.t()], cmd_opts()) :: {String.t(), non_neg_integer()}
   def run(command, args, opts \\ []) when is_binary(command) and is_list(args) do
+    case System.find_executable(command) do
+      nil -> not_found(command)
+      exe -> spawn_and_collect(exe, args, opts)
+    end
+  end
+
+  defp not_found(command) do
+    {"git_hoox: executable not found: #{command}\n", 127}
+  end
+
+  defp spawn_and_collect(exe, args, opts) do
     env =
       opts
       |> Keyword.get(:env, [])
@@ -45,10 +59,6 @@ defmodule GitHoox.Cmd do
 
     stream? = Keyword.get(opts, :stream, default_stream?())
     device = Keyword.get(opts, :device, :stdio)
-
-    exe =
-      System.find_executable(command) ||
-        raise "GitHoox.Cmd could not find executable: #{command}"
 
     port =
       Port.open(
