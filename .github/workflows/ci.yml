@@ -71,6 +71,35 @@ jobs:
       - run: mix deps.get
       - run: mix test --warnings-as-errors
 
+  coverage:
+    name: Coverage
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - uses: erlef/setup-beam@fc68ffb90438ef2936bbb3251622353b3dcb2f93 # v1.24.0
+        with:
+          otp-version: "28"
+          elixir-version: "1.19"
+
+      - uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        with:
+          path: |
+            deps
+            _build
+          key: mix-${{ runner.os }}-1.19-28-${{ hashFiles('**/mix.lock') }}
+          restore-keys: |
+            mix-${{ runner.os }}-1.19-28-
+
+      - run: mix deps.get
+      - run: mix coveralls.lcov
+
+      - uses: coverallsapp/github-action@648a8eb78e6d50909eff900e4ec85cab4524a45b # v2.3.6
+        with:
+          file: ./cover/lcov.info
+          format: lcov
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
   dialyzer:
     name: Dialyzer
     runs-on: ubuntu-latest
