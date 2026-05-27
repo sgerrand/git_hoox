@@ -80,11 +80,16 @@ defmodule GitHoox.Doctor do
   defp shim_kind(hook, dir) do
     path = Path.join(dir, hook)
 
-    cond do
-      not File.exists?(path) -> :missing
-      not Installer.managed?(path) -> :foreign
-      not executable?(path) -> :non_exec
-      true -> :managed
+    case File.stat(path) do
+      {:error, _} ->
+        :missing
+
+      {:ok, %File.Stat{mode: mode}} ->
+        cond do
+          not Installer.managed?(path) -> :foreign
+          Bitwise.band(mode, 0o111) == 0 -> :non_exec
+          true -> :managed
+        end
     end
   end
 
@@ -92,13 +97,6 @@ defmodule GitHoox.Doctor do
   defp bucket(:foreign, hook, {m, f, miss, nx}), do: {m, [hook | f], miss, nx}
   defp bucket(:missing, hook, {m, f, miss, nx}), do: {m, f, [hook | miss], nx}
   defp bucket(:non_exec, hook, {m, f, miss, nx}), do: {[hook | m], f, miss, [hook | nx]}
-
-  defp executable?(path) do
-    case File.stat(path) do
-      {:ok, %File.Stat{mode: mode}} -> Bitwise.band(mode, 0o111) != 0
-      _ -> false
-    end
-  end
 
   defp summarize_shims(managed, foreign, missing, non_exec) do
     cond do
