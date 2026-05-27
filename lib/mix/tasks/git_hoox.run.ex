@@ -35,18 +35,17 @@ defmodule Mix.Tasks.GitHoox.Run do
   def run([]), do: Mix.raise("Usage: mix git_hoox.run <stage>")
 
   defp parse_stage!(stage) do
-    atom_name = String.replace(stage, "-", "_")
-    valid = Schema.valid_stages()
+    case Schema.parse_stage(stage) do
+      {:ok, atom} ->
+        atom
 
-    case Enum.find(valid, fn s -> Atom.to_string(s) == atom_name end) do
-      nil ->
+      :error ->
+        valid = Schema.valid_stages()
+
         Mix.raise(
           "Unknown git_hoox stage: #{stage}. Valid: " <>
             Enum.map_join(valid, ", ", &(&1 |> Atom.to_string() |> String.replace("_", "-")))
         )
-
-      atom ->
-        atom
     end
   end
 

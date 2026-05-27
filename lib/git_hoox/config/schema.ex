@@ -57,4 +57,21 @@ defmodule GitHoox.Config.Schema do
 
   @spec valid_stages() :: [atom()]
   def valid_stages, do: @stages
+
+  @doc """
+  Parse a kebab- or snake-case stage string into its canonical atom.
+
+  Returns `:error` if `stage` does not match any value in `valid_stages/0`.
+  Atoms are never created from untrusted input — only known stages are
+  returned.
+  """
+  @spec parse_stage(String.t()) :: {:ok, atom()} | :error
+  def parse_stage(stage) when is_binary(stage) do
+    normalized = String.replace(stage, "-", "_")
+
+    case Enum.find(@stages, fn s -> Atom.to_string(s) == normalized end) do
+      nil -> :error
+      atom -> {:ok, atom}
+    end
+  end
 end
