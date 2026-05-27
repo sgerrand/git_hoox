@@ -17,6 +17,12 @@ defmodule Mix.Tasks.GitHoox.RunTest do
     end
   end
 
+  test "unknown stage raises Mix.Error and lists valid stages" do
+    assert_raise Mix.Error, ~r/Unknown git_hoox stage: bogus/, fn ->
+      RunTask.run(["bogus"])
+    end
+  end
+
   test "kebab-case stage maps to atom and runs successfully", %{repo: dir} do
     write(dir, "lib/foo.ex", "x\n")
     stage(dir, ["lib/foo.ex"])

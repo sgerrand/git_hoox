@@ -13,10 +13,12 @@ defmodule Mix.Tasks.GitHoox.Run do
 
   use Mix.Task
 
+  alias GitHoox.Config.Schema
+
   @impl Mix.Task
   @spec run([String.t()]) :: :ok | no_return()
   def run([stage | args]) do
-    atom = stage |> String.replace("-", "_") |> String.to_atom()
+    atom = parse_stage!(stage)
     stdin = read_stdin(atom)
 
     case GitHoox.run(atom, args, stdin) do
@@ -30,6 +32,22 @@ defmodule Mix.Tasks.GitHoox.Run do
   end
 
   def run([]), do: Mix.raise("Usage: mix git_hoox.run <stage>")
+
+  defp parse_stage!(stage) do
+    atom_name = String.replace(stage, "-", "_")
+    valid = Schema.valid_stages()
+
+    case Enum.find(valid, fn s -> Atom.to_string(s) == atom_name end) do
+      nil ->
+        Mix.raise(
+          "Unknown git_hoox stage: #{stage}. Valid: " <>
+            Enum.map_join(valid, ", ", &(&1 |> Atom.to_string() |> String.replace("_", "-")))
+        )
+
+      atom ->
+        atom
+    end
+  end
 
   defp read_stdin(:pre_push) do
     case IO.read(:stdio, :eof) do
