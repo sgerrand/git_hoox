@@ -1,5 +1,7 @@
 # GitHoox
 
+[![Coverage Status](https://coveralls.io/repos/github/sgerrand/git_hoox/badge.svg?branch=main)](https://coveralls.io/github/sgerrand/git_hoox?branch=main)
+
 Git hooks in pure Elixir. Configurable file globs, per-hook options, built-in
 support for `mix format`, Credo, ExUnit, and Dialyzer.
 
