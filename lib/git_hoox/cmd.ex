@@ -23,6 +23,14 @@ defmodule GitHoox.Cmd do
   Hook timeouts are still enforced one layer up by
   `GitHoox.Runner`. When the runner brutally kills the Task that owns the
   port, BEAM closes the port and the OS child process gets SIGTERM.
+
+  ## Stdin
+
+  Children are spawned via a `sh -c 'exec "$0" "$@" </dev/null' ...`
+  wrapper so their stdin is `/dev/null`. Tools that read stdin on
+  startup (e.g. `mado`, anything that calls `read`/`gets` without first
+  checking `isatty`) would otherwise inherit the BEAM process's stdin
+  and block forever inside a hook.
   """
 
   @type cmd_opts :: [
@@ -62,14 +70,14 @@ defmodule GitHoox.Cmd do
 
     port =
       Port.open(
-        {:spawn_executable, exe},
+        {:spawn_executable, sh_executable()},
         [
           :binary,
           :exit_status,
           :stderr_to_stdout,
           :use_stdio,
           :hide,
-          args: args,
+          args: ["-c", ~s|exec "$0" "$@" </dev/null|, exe | args],
           env: env
         ]
       )
@@ -119,5 +127,14 @@ defmodule GitHoox.Cmd do
 
   defp default_stream? do
     Application.get_env(:git_hoox, :stream_output, true)
+  end
+
+  # Spawn via /bin/sh that redirects stdin from /dev/null before exec'ing
+  # the real command. Without this, child processes that read stdin
+  # (e.g. `mado`, `read`, any tool that calls `isatty(0)` and falls back
+  # to blocking reads) hang forever because the BEAM port leaves their
+  # fd 0 inherited from the BEAM process.
+  defp sh_executable do
+    System.find_executable("sh") || "/bin/sh"
   end
 end

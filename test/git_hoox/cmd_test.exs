@@ -72,6 +72,27 @@ defmodule GitHoox.CmdTest do
     end
   end
 
+  describe "stdin" do
+    @tag timeout: 5_000
+    test "child stdin is closed so blocking reads see EOF immediately" do
+      # `head -n1` would block forever if stdin were inherited from the
+      # BEAM. The sh wrapper in spawn_and_collect/3 redirects fd 0 to
+      # /dev/null so the read returns EOF and head exits 0.
+      {out, status} = Cmd.run("head", ["-n1"], stream: false)
+      assert status == 0
+      assert out == ""
+    end
+
+    @tag timeout: 5_000
+    test "sh -c subcommands also see EOF on stdin" do
+      {out, status} =
+        Cmd.run("sh", ["-c", "head -n1; echo done=$?"], stream: false)
+
+      assert status == 0
+      assert out =~ "done=0"
+    end
+  end
+
   describe "errors" do
     test "returns 127 with a message when executable cannot be resolved" do
       missing = "definitely-not-a-real-binary-#{System.unique_integer([:positive])}"
