@@ -119,24 +119,40 @@ defmodule GitHoox.Git do
   defp push_ref_files(line) do
     case String.split(line, " ", trim: true) do
       [_local_ref, local_sha, _remote_ref, remote_sha] ->
-        zero = String.duplicate("0", String.length(local_sha))
-
-        args =
-          if remote_sha == zero do
-            ["show", "--name-only", "--pretty=format:", "-z", local_sha]
-          else
-            ["diff", "--name-only", "-z", "#{remote_sha}..#{local_sha}"]
-          end
-
-        case cmd(args) do
-          {:ok, out} -> split_z(out)
-          _ -> []
-        end
+        push_kind(local_sha, remote_sha) |> push_files_for(local_sha, remote_sha)
 
       _ ->
         []
     end
   end
+
+  defp push_kind(local_sha, remote_sha) do
+    cond do
+      zero_sha?(local_sha) -> :delete
+      zero_sha?(remote_sha) -> :create
+      true -> :update
+    end
+  end
+
+  # Deleting a remote ref pushes no content — nothing to scan.
+  defp push_files_for(:delete, _local, _remote), do: []
+
+  defp push_files_for(:create, local, _remote) do
+    run_split(["show", "--name-only", "--pretty=format:", "-z", local])
+  end
+
+  defp push_files_for(:update, local, remote) do
+    run_split(["diff", "--name-only", "-z", "#{remote}..#{local}"])
+  end
+
+  defp run_split(args) do
+    case cmd(args) do
+      {:ok, out} -> split_z(out)
+      _ -> []
+    end
+  end
+
+  defp zero_sha?(sha), do: sha != "" and String.replace(sha, "0", "") == ""
 
   defp cmd(args) do
     case System.cmd("git", args, stderr_to_stdout: true) do

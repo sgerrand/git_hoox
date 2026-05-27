@@ -95,6 +95,18 @@ defmodule GitHoox.GitStagesTest do
       end)
     end
 
+    test "all-zero local sha (branch delete) yields empty list without running git", %{
+      repo: dir
+    } do
+      zero = String.duplicate("0", 40)
+      bogus_remote = "deadbeefdeadbeefdeadbeefdeadbeefdeadbeef"
+      line = "refs/heads/main #{zero} refs/heads/main #{bogus_remote}\n"
+
+      in_repo(dir, fn ->
+        assert {:ok, []} = Git.push_files(line)
+      end)
+    end
+
     test "git error on bogus sha yields empty list", %{repo: dir} do
       line =
         "refs/heads/main deadbeefdeadbeefdeadbeefdeadbeefdeadbeef " <>
