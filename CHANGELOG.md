@@ -5,6 +5,38 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0](https://github.com/sgerrand/git_hoox/compare/v0.3.0...v0.4.0) (2026-05-27)
+
+
+### Features
+
+* **doctor:** flag managed shims missing the executable bit ([958d800](https://github.com/sgerrand/git_hoox/commit/958d800be204b504a77c4950cac373286021e4ba))
+
+
+### Bug Fixes
+
+* **cmd:** return {msg, 127} for missing executables ([61a6690](https://github.com/sgerrand/git_hoox/commit/61a6690f26a7364d59f4e109886978112ea13897))
+* **hooks/test:** scope :related with no matches no longer runs full suite ([091b4b7](https://github.com/sgerrand/git_hoox/commit/091b4b75494b0a112f77d529fd53544bb4601967))
+* **mix/run:** validate stage against Schema before atom conversion ([8e4e7d0](https://github.com/sgerrand/git_hoox/commit/8e4e7d06667d63648666aa754fac17477f1661f7))
+* **runner:** honor fail_fast on parallel stage runs ([831c6a2](https://github.com/sgerrand/git_hoox/commit/831c6a2d3b213de637b3686bed87a83e3cd71fbc))
+
+
+### Performance
+
+* **runner:** precompile glob patterns once per hook ([0fba30c](https://github.com/sgerrand/git_hoox/commit/0fba30c33208609b7f967007ec9bd6fa689a9045))
+
+
+### Refactor
+
+* **cmd:** monitor the port to avoid wedging on detached stdio ([5cd5f0c](https://github.com/sgerrand/git_hoox/commit/5cd5f0cee4921b12413b1cfb43700ae77755810d))
+* **git:** handle pre-push delete refs explicitly ([f8b4b54](https://github.com/sgerrand/git_hoox/commit/f8b4b5426c6fd61cb519cad4f15ba41b5e26c37b))
+* **hook:** centralize merge_defaults helper ([7b07fd8](https://github.com/sgerrand/git_hoox/commit/7b07fd8954e33dc1b6c44c8b72831f81fefe77b5))
+* **hooks/test:** hoist map_to_test regexes to module attrs ([5aeed59](https://github.com/sgerrand/git_hoox/commit/5aeed5986e02a8bb22d91b535677f878f6982244))
+* **hooks:** extract Helpers.to_result/1 for Cmd.run results ([cebef86](https://github.com/sgerrand/git_hoox/commit/cebef866e96d3de7673188d44f68317760997a5c))
+* **installer:** truncate backup timestamp via DateTime.truncate ([fd4c2ab](https://github.com/sgerrand/git_hoox/commit/fd4c2abd2032cbb058dba9fdce72d4968210c671))
+* **runner:** collapse serial result-ordering to single reverse ([172530a](https://github.com/sgerrand/git_hoox/commit/172530ae6f141a6f3ab276d9223413ffe750d2ce))
+* **runner:** move config-error rendering to the mix task ([ff40ace](https://github.com/sgerrand/git_hoox/commit/ff40aceb880a8ddb1ad7a4eb8c8fdb0bcdcf904d))
+
 ## [0.3.0](https://github.com/sgerrand/git_hoox/compare/v0.2.0...v0.3.0) (2026-05-26)
 
 
