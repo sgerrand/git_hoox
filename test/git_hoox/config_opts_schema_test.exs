@@ -94,7 +94,7 @@ defmodule GitHoox.ConfigOptsSchemaTest do
       assert {:ok, _} = Config.load(path)
     end
 
-    test "Dialyzer rejects unknown opt despite empty schema", %{tmp: tmp} do
+    test "Dialyzer rejects unknown opt", %{tmp: tmp} do
       path =
         write_config(tmp, """
         %{hooks: [pre_push: [{GitHoox.Hooks.Dialyzer, [whatever: 1]}]]}

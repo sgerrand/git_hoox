@@ -6,7 +6,8 @@
 [![Hex Docs](https://img.shields.io/badge/docs-hexpm-blue.svg)](https://hexdocs.pm/git_hoox/)
 
 Git hooks in pure Elixir. Configurable file globs, per-hook options, built-in
-support for `mix format`, Credo, ExUnit, and Dialyzer.
+support for `mix format`, Credo, ExUnit, and Dialyzer, plus a generic
+`mix <task>` hook for everything else.
 
 GitHoox aims for parity with [lefthook](https://github.com/evilmartians/lefthook)'s
 mental model — no implicit stashing, opt-in re-staging of fixed files — while
@@ -93,9 +94,14 @@ Runs `mix format` against staged Elixir files and re-stages the result.
 {GitHoox.Hooks.Format, []}
 {GitHoox.Hooks.Format, check_only: true}     # fail instead of mutating
 {GitHoox.Hooks.Format, files: ~w(lib/**/*.ex)}
+{GitHoox.Hooks.Format, args: ["--dot-formatter", "custom.exs"]}
 ```
 
 Defaults: `stage_fixed: true`, `files: ~w(**/*.ex **/*.exs **/*.heex)`.
+
+`:args` are inserted between any built-in flag (`--check-formatted`) and
+the trailing file list — final shape:
+`mix format [--check-formatted] <args...> <files...>`.
 
 ### `GitHoox.Hooks.Credo`
 
@@ -104,9 +110,13 @@ Runs `mix credo` against staged Elixir files.
 ```elixir
 {GitHoox.Hooks.Credo, []}
 {GitHoox.Hooks.Credo, strict: true}
+{GitHoox.Hooks.Credo, strict: true, args: ["--format", "json"]}
 ```
 
 Defaults: `stage_fixed: false`, `files: ~w(lib/**/*.ex test/**/*.exs)`.
+
+`:args` are inserted before `--files-included` — final shape:
+`mix credo [--strict] <args...> --files-included <files...>`.
 
 ### `GitHoox.Hooks.Test`
 
@@ -116,9 +126,14 @@ Runs `mix test`. Three selection strategies:
 {GitHoox.Hooks.Test, scope: :all}        # full suite
 {GitHoox.Hooks.Test, scope: :stale}      # mix test --stale (fastest)
 {GitHoox.Hooks.Test, scope: :related}    # map staged lib/*.ex to test/*_test.exs
+{GitHoox.Hooks.Test, scope: :stale, args: ["--warnings-as-errors"]}
 ```
 
 Defaults: `stage_fixed: false`, `scope: :all`.
+
+`:args` are spliced after the scope flag and before any related-test
+paths — final shape:
+`mix test [--stale] <args...> [<related_test_files>]`.
 
 ### `GitHoox.Hooks.Dialyzer`
 
@@ -127,9 +142,49 @@ make this unsuitable for `pre_commit`. Configure on `pre_push`.
 
 ```elixir
 pre_push: [
-  {GitHoox.Hooks.Dialyzer, []}
+  {GitHoox.Hooks.Dialyzer, []},
+  {GitHoox.Hooks.Dialyzer, args: ["--halt-exit-status"]}
 ]
 ```
+
+`:args` are appended after `--quiet` — final shape:
+`mix dialyzer --quiet <args...>`.
+
+### `GitHoox.Hooks.Mix`
+
+Generic escape hatch for `mix` tasks that don't have a dedicated hook
+module (`mix docs`, `mix compile --warnings-as-errors`, `mix hex.outdated`,
+`mix deps.audit`, …):
+
+```elixir
+{GitHoox.Hooks.Mix, task: "compile", args: ["--warnings-as-errors"]}
+{GitHoox.Hooks.Mix, task: "docs"}
+{GitHoox.Hooks.Mix, task: "hex.outdated"}
+
+# Task accepts paths — opt into file forwarding.
+{GitHoox.Hooks.Mix, task: "lint", append_files: true,
+                    files: ~w(lib/**/*.ex)}
+```
+
+Options:
+
+| Option           | Type    | Default | Description                                              |
+|------------------|---------|---------|----------------------------------------------------------|
+| `:task`          | string  | —       | Required. Mix task name.                                  |
+| `:args`          | list    | `[]`    | Extra CLI args appended after the task name.              |
+| `:append_files`  | boolean | `false` | Append the matched file list as trailing arguments.       |
+
+Defaults: `stage_fixed: false`.
+
+When `append_files: true` and the runner passes an empty file list, the
+hook returns `:ok` without running mix. This avoids the trailing-space
+"scan whole project" trap. `append_files: false` runs the task regardless
+of file list.
+
+Prefer the dedicated hooks (`Format`, `Credo`, `Test`, `Dialyzer`) when
+they cover the task — they ship sensible defaults and first-class
+options. `Hooks.Mix` is the right call when no dedicated module exists
+or when you want a one-line shim for a custom task.
 
 ### `GitHoox.Hooks.Shell`
 

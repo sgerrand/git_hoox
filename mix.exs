@@ -55,7 +55,8 @@ defmodule GitHoox.MixProject do
 
   defp description do
     "Git hooks in pure Elixir. Configurable file globs, per-hook options, " <>
-      "built-in support for mix format, Credo, ExUnit, and Dialyzer."
+      "built-in support for mix format, Credo, ExUnit, Dialyzer, and a " <>
+      "generic mix-task hook."
   end
 
   defp package do
@@ -85,6 +86,7 @@ defmodule GitHoox.MixProject do
           GitHoox.Hooks.Credo,
           GitHoox.Hooks.Test,
           GitHoox.Hooks.Dialyzer,
+          GitHoox.Hooks.Mix,
           GitHoox.Hooks.Shell
         ],
         "Mix Tasks": [

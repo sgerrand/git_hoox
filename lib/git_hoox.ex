@@ -1,7 +1,8 @@
 defmodule GitHoox do
   @moduledoc """
   Git hooks in pure Elixir. Configurable file globs, per-hook options,
-  built-in support for `mix format`, Credo, ExUnit, and Dialyzer.
+  built-in support for `mix format`, Credo, ExUnit, and Dialyzer, plus a
+  generic `mix <task>` hook for everything else.
 
   ## Quickstart
 
