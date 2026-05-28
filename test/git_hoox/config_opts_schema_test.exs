@@ -91,7 +91,14 @@ defmodule GitHoox.ConfigOptsSchemaTest do
         %{hooks: [pre_commit: [{GitHoox.Hooks.Shell, [run: "echo hi"]}]]}
         """)
 
-      assert {:ok, _} = Config.load(path)
+      assert {:ok, config} = Config.load(path)
+      assert [pre_commit: [{GitHoox.Hooks.Shell, opts}]] = config.hooks
+      assert opts[:run] == "echo hi"
+      assert opts[:shell] == "sh"
+      assert opts[:files] == ["**/*"]
+      assert opts[:stage_fixed] == false
+      assert opts[:timeout] == 30_000
+      assert opts[:env] == %{}
     end
 
     test "Dialyzer rejects unknown opt", %{tmp: tmp} do

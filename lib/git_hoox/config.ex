@@ -83,27 +83,38 @@ defmodule GitHoox.Config do
   end
 
   defp validate_hook_entries(top) do
-    Enum.reduce_while(top[:hooks], {:ok, top}, fn {stage, entries}, acc ->
+    Enum.reduce_while(top[:hooks], {:ok, []}, fn {stage, entries}, {:ok, acc} ->
       case validate_entries(stage, entries) do
-        :ok -> {:cont, acc}
+        {:ok, entries} -> {:cont, {:ok, [{stage, entries} | acc]}}
         err -> {:halt, err}
       end
     end)
+    |> case do
+      {:ok, hooks} -> {:ok, Keyword.put(top, :hooks, Enum.reverse(hooks))}
+      err -> err
+    end
   end
 
   defp validate_entries(stage, entries) when is_list(entries) do
-    Enum.reduce_while(entries, :ok, fn entry, _ ->
+    Enum.reduce_while(entries, {:ok, []}, fn entry, {:ok, acc} ->
       case validate_entry(stage, entry) do
-        :ok -> {:cont, :ok}
+        {:ok, entry} -> {:cont, {:ok, [entry | acc]}}
         err -> {:halt, err}
       end
     end)
+    |> case do
+      {:ok, entries} -> {:ok, Enum.reverse(entries)}
+      err -> err
+    end
   end
 
   defp validate_entry(stage, {mod, opts}) when is_atom(mod) and is_list(opts) do
     with :ok <- ensure_loaded(stage, mod),
          :ok <- ensure_behaviour(stage, mod) do
-      validate_opts(stage, mod, opts)
+      case validate_opts(stage, mod, opts) do
+        {:ok, opts} -> {:ok, {mod, opts}}
+        err -> err
+      end
     end
   end
 
@@ -131,8 +142,9 @@ defmodule GitHoox.Config do
   defp validate_opts(stage, mod, opts) do
     merged = Hook.merge_defaults(mod, opts)
 
-    with :ok <- validate_global(stage, mod, merged) do
-      validate_hook_specific(stage, mod, merged)
+    with {:ok, global} <- validate_global(stage, mod, merged),
+         {:ok, specific} <- validate_hook_specific(stage, mod, merged) do
+      {:ok, Keyword.merge(global, specific)}
     end
   end
 
@@ -148,13 +160,13 @@ defmodule GitHoox.Config do
       |> Keyword.drop(@global_keys)
       |> validate_with(mod.opts_schema(), stage, mod)
     else
-      :ok
+      {:ok, Keyword.drop(merged, @global_keys)}
     end
   end
 
   defp validate_with(opts, schema, stage, mod) do
     case NimbleOptions.validate(opts, schema) do
-      {:ok, _} -> :ok
+      {:ok, opts} -> {:ok, opts}
       {:error, err} -> {:error, {:invalid_hook_opts, stage, mod, Exception.message(err)}}
     end
   end

@@ -55,7 +55,10 @@ defmodule GitHoox.ConfigTest do
     assert config.parallel == false
     assert config.fail_fast == false
     assert config.skip_env == "GIT_HOOX"
-    assert [pre_commit: [{GitHoox.TestHooks.Pass, []}]] = config.hooks
+    assert [pre_commit: [{GitHoox.TestHooks.Pass, opts}]] = config.hooks
+    assert opts[:files] == ["**/*"]
+    assert opts[:timeout] == 30_000
+    assert opts[:env] == %{}
   end
 
   test "overrides apply", %{tmp: tmp} do

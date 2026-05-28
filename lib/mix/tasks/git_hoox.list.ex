@@ -6,9 +6,9 @@ defmodule Mix.Tasks.GitHoox.List do
 
       mix git_hoox.list
 
-  Loads `.git_hoox.exs`, merges per-hook `default_opts/0` with the user
-  options, and prints each stage with its hooks and the opts each hook will
-  see at run time. Useful as a debug companion to `mix git_hoox.doctor`.
+  Loads `.git_hoox.exs` and prints each stage with its hooks and the
+  resolved opts each hook will see at run time. Useful as a debug companion
+  to `mix git_hoox.doctor`.
 
   Exits non-zero if the config fails to load or validate.
   """
@@ -17,7 +17,6 @@ defmodule Mix.Tasks.GitHoox.List do
 
   alias GitHoox.Config
   alias GitHoox.Config.Error, as: ConfigError
-  alias GitHoox.Hook
 
   @impl Mix.Task
   @spec run([String.t()]) :: :ok | no_return()
@@ -57,11 +56,10 @@ defmodule Mix.Tasks.GitHoox.List do
     Mix.shell().info("")
   end
 
-  defp print_entry({mod, user_opts}) do
-    merged = Hook.merge_defaults(mod, user_opts)
+  defp print_entry({mod, opts}) do
     Mix.shell().info("  #{inspect(mod)}")
 
-    Enum.each(merged, fn {k, v} ->
+    Enum.each(opts, fn {k, v} ->
       Mix.shell().info("    #{k}: #{inspect(v)}")
     end)
   end

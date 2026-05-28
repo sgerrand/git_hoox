@@ -10,7 +10,6 @@ defmodule GitHoox.Runner do
   alias GitHoox.Config
   alias GitHoox.Git
   alias GitHoox.Glob
-  alias GitHoox.Hook
   alias GitHoox.Telemetry
 
   @typedoc "One hook's exit summary."
@@ -165,7 +164,7 @@ defmodule GitHoox.Runner do
   end
 
   defp run_one({mod, user_opts}, files, stage) do
-    opts = mod |> Hook.merge_defaults(user_opts) |> Keyword.put(:__stage__, stage)
+    opts = Keyword.put(user_opts, :__stage__, stage)
     matched = filter_files(files, Keyword.fetch!(opts, :files))
 
     if matched == [] do
