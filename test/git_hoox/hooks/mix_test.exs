@@ -17,7 +17,13 @@ defmodule GitHoox.Hooks.MixTest do
   end
 
   test "default_opts/0 + opts_schema/0" do
-    assert MixHook.default_opts()[:stage_fixed] == false
+    defaults = MixHook.default_opts()
+    assert defaults[:stage_fixed] == false
+    # :files must be set — Runner.run_one/3 reads it via Keyword.fetch!/2
+    # and the global schema default ("**/*") is not propagated into runtime
+    # opts, so hooks have to declare it themselves.
+    assert defaults[:files] == ["**/*"]
+
     schema = MixHook.opts_schema()
     assert Keyword.has_key?(schema, :task)
     assert Keyword.has_key?(schema, :args)

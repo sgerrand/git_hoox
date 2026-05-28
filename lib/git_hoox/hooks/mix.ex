@@ -24,7 +24,7 @@ defmodule GitHoox.Hooks.Mix do
   ## Defaults
 
     * `stage_fixed: false`
-    * `files: ["**/*"]` (inherited from the global schema)
+    * `files: ["**/*"]`
 
   ## Empty file list
 
@@ -71,7 +71,7 @@ defmodule GitHoox.Hooks.Mix do
 
   @impl true
   @spec default_opts() :: keyword()
-  def default_opts, do: [stage_fixed: false]
+  def default_opts, do: [stage_fixed: false, files: ["**/*"]]
 
   @impl true
   @spec opts_schema() :: keyword()
