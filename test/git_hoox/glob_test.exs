@@ -106,6 +106,22 @@ defmodule GitHoox.GlobTest do
         assert is_boolean(Glob.match?(path, pattern))
       end
     end
+
+    # Oracle: build a real file tree under a fresh tmp dir, then assert
+    # Glob.match?/2 agrees with Path.wildcard/1 on each generated file.
+    # Generators are restricted to lowercase alphanumeric segments and
+    # extensions so the comparison is portable across case-insensitive
+    # filesystems and avoids dotfile semantics in Path.wildcard.
+    property "Glob.match? agrees with Path.wildcard oracle" do
+      check all(
+              files <- list_of(oracle_relpath(), min_length: 1, max_length: 6),
+              pattern <- oracle_pattern(),
+              max_runs: 40
+            ) do
+        files = Enum.uniq(files)
+        run_oracle(files, pattern)
+      end
+    end
   end
 
   defp safe_segment do
@@ -115,5 +131,65 @@ defmodule GitHoox.GlobTest do
   defp safe_path do
     list_of(safe_segment(), min_length: 1, max_length: 5)
     |> map(&Enum.join(&1, "/"))
+  end
+
+  defp oracle_segment do
+    string([?a..?z, ?0..?9], min_length: 1, max_length: 3)
+  end
+
+  defp oracle_relpath do
+    gen all(
+          segs <- list_of(oracle_segment(), min_length: 1, max_length: 3),
+          ext <- member_of(~w(.ex .md .txt))
+        ) do
+      Enum.join(segs, "/") <> ext
+    end
+  end
+
+  defp oracle_pattern do
+    member_of([
+      "*",
+      "**",
+      "*.ex",
+      "*.md",
+      "**/*",
+      "**/*.ex",
+      "**/*.md",
+      "a/*",
+      "a/*.ex",
+      "a/**",
+      "a/**/*.ex"
+    ])
+  end
+
+  defp run_oracle(files, pattern) do
+    tmp = Path.join(System.tmp_dir!(), "git_hoox_glob_#{System.unique_integer([:positive])}")
+    File.mkdir_p!(tmp)
+
+    try do
+      for file <- files do
+        abs = Path.join(tmp, file)
+        File.mkdir_p!(Path.dirname(abs))
+        File.touch!(abs)
+      end
+
+      expected =
+        tmp
+        |> Path.join(pattern)
+        |> Path.wildcard()
+        |> Enum.map(&Path.relative_to(&1, tmp))
+        |> MapSet.new()
+
+      for file <- files do
+        oracle = MapSet.member?(expected, file)
+        actual = Glob.match?(file, pattern)
+
+        assert oracle == actual,
+               "mismatch file=#{inspect(file)} pattern=#{inspect(pattern)} " <>
+                 "oracle=#{oracle} actual=#{actual}"
+      end
+    after
+      File.rm_rf!(tmp)
+    end
   end
 end

@@ -71,8 +71,14 @@ Key modules:
   `<hook>.backup.<utc-iso8601>`. `scaffold/1` writes a starter `.git_hoox.exs`.
 - `GitHoox.Glob` — hand-rolled `match?/2` for hook `:files` filters. Supports
   `**/`, `**`, `*`, `?`. Covered by `test/git_hoox/glob_test.exs` with
-  concrete cases, doctests, and StreamData properties (the "match? never
-  raises on arbitrary printable inputs" property is the main fuzz harness).
+  concrete cases, doctests, and StreamData properties. Two property
+  harnesses: "match? never raises on arbitrary printable inputs" fuzzes
+  the regex compilation, and "Glob.match? agrees with Path.wildcard
+  oracle" builds a real file tree under `System.tmp_dir!()` and asserts
+  parity with `Path.wildcard/1` for a curated subset of patterns —
+  generators are restricted to lowercase alphanumeric segments to stay
+  portable across case-insensitive filesystems and avoid dotfile
+  semantics in `Path.wildcard`.
 - `GitHoox.Cmd` — Port-backed replacement for `System.cmd/3` used by every
   built-in hook (Format, Credo, Test, Dialyzer, Shell). Streams combined
   stdout/stderr to `:stdio` as each chunk arrives and still returns the
