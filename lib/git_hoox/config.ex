@@ -40,16 +40,14 @@ defmodule GitHoox.Config do
   end
 
   defp eval_config(path) do
-    try do
-      {raw, _binding} = Code.eval_file(path)
-      normalize(raw)
-    rescue
-      err ->
-        {:error, {:invalid_config, "failed to evaluate #{path}: #{Exception.message(err)}"}}
-    catch
-      kind, reason ->
-        {:error, {:invalid_config, "failed to evaluate #{path}: #{kind}: #{inspect(reason)}"}}
-    end
+    {raw, _binding} = Code.eval_file(path)
+    normalize(raw)
+  rescue
+    err ->
+      {:error, {:invalid_config, "failed to evaluate #{path}: #{Exception.message(err)}"}}
+  catch
+    kind, reason ->
+      {:error, {:invalid_config, "failed to evaluate #{path}: #{kind}: #{inspect(reason)}"}}
   end
 
   defp normalize(raw) when is_map(raw), do: {:ok, Map.to_list(raw)}
