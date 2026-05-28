@@ -42,6 +42,24 @@ defmodule GitHoox.Hooks.CredoTest do
     end)
   end
 
+  test ":args splice between --strict and --files-included", %{repo: dir} do
+    install_fake_mix(dir, ~S"""
+    # Expect: credo --strict --format json --files-included lib/foo.ex
+    if [ "$1" = "credo" ] && [ "$2" = "--strict" ] \
+       && [ "$3" = "--format" ] && [ "$4" = "json" ] \
+       && [ "$5" = "--files-included" ] && [ "$6" = "lib/foo.ex" ]; then
+      exit 0
+    fi
+    echo "unexpected args: $@" >&2
+    exit 31
+    """)
+
+    in_repo(dir, fn ->
+      assert :ok =
+               Credo.run(["lib/foo.ex"], strict: true, args: ["--format", "json"])
+    end)
+  end
+
   test "strict: true inserts --strict before --files-included", %{repo: dir} do
     install_fake_mix(dir, ~S"""
     seen=""

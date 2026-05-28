@@ -69,6 +69,53 @@ defmodule GitHoox.Hooks.TestHookTest do
     end)
   end
 
+  test ":args splice after `test` for scope :all", %{repo: dir} do
+    install_fake_mix(dir, ~S"""
+    if [ "$1" = "test" ] && [ "$2" = "--warnings-as-errors" ]; then exit 0; fi
+    echo "unexpected args: $@" >&2
+    exit 11
+    """)
+
+    in_repo(dir, fn ->
+      assert :ok = TestHook.run([], scope: :all, args: ["--warnings-as-errors"])
+    end)
+  end
+
+  test ":args splice after --stale for scope :stale", %{repo: dir} do
+    install_fake_mix(dir, ~S"""
+    if [ "$1" = "test" ] && [ "$2" = "--stale" ] && [ "$3" = "--warnings-as-errors" ]; then
+      exit 0
+    fi
+    echo "unexpected args: $@" >&2
+    exit 12
+    """)
+
+    in_repo(dir, fn ->
+      assert :ok = TestHook.run([], scope: :stale, args: ["--warnings-as-errors"])
+    end)
+  end
+
+  test ":args precede related test files for scope :related", %{repo: dir} do
+    install_fake_mix(dir, ~S"""
+    if [ "$1" = "test" ] && [ "$2" = "--warnings-as-errors" ] \
+       && [ "$3" = "test/foo_test.exs" ]; then
+      exit 0
+    fi
+    echo "unexpected args: $@" >&2
+    exit 13
+    """)
+
+    write(dir, "test/foo_test.exs", "x\n")
+
+    in_repo(dir, fn ->
+      assert :ok =
+               TestHook.run(["lib/foo.ex"],
+                 scope: :related,
+                 args: ["--warnings-as-errors"]
+               )
+    end)
+  end
+
   test "non-zero exit surfaces as error tuple", %{repo: dir} do
     install_fake_mix(dir, "echo boom\nexit 2\n")
 

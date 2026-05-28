@@ -5,6 +5,11 @@ defmodule GitHoox.Hooks.Test do
   ## Options
 
     * `:scope` — `:all`, `:stale`, or `:related`. Default `:all`.
+    * `:args` — extra CLI args appended after the task name and any
+      scope-derived flag. Default `[]`. Example:
+      `["--warnings-as-errors"]`.
+
+  Argument order: `mix test [--stale] <user_args...> [<related_test_files>]`.
 
   ## Defaults
 
@@ -31,6 +36,11 @@ defmodule GitHoox.Hooks.Test do
       type: {:in, [:all, :stale, :related]},
       default: :all,
       doc: "Test selection strategy."
+    ],
+    args: [
+      type: {:list, :string},
+      default: [],
+      doc: "Extra CLI args appended after the task name and scope flag."
     ]
   ]
 
@@ -47,17 +57,19 @@ defmodule GitHoox.Hooks.Test do
   @impl true
   @spec run(GitHoox.Hook.files(), GitHoox.Hook.opts()) :: GitHoox.hook_result()
   def run(files, opts) do
+    extra = Keyword.get(opts, :args, [])
+
     case Keyword.get(opts, :scope, :all) do
-      :stale -> exec(["test", "--stale"], opts)
-      :related -> run_related(files, opts)
-      _ -> exec(["test"], opts)
+      :stale -> exec(["test", "--stale" | extra], opts)
+      :related -> run_related(files, extra, opts)
+      _ -> exec(["test" | extra], opts)
     end
   end
 
-  defp run_related(files, opts) do
+  defp run_related(files, extra, opts) do
     case related_test_files(files) do
       [] -> :ok
-      related -> exec(["test" | related], opts)
+      related -> exec(["test" | extra] ++ related, opts)
     end
   end
 

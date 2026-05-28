@@ -18,7 +18,22 @@ defmodule GitHoox.Hooks.DialyzerTest do
 
   test "default_opts/0 + opts_schema/0" do
     assert Dialyzer.default_opts()[:stage_fixed] == false
-    assert Dialyzer.opts_schema() == []
+    assert Keyword.has_key?(Dialyzer.opts_schema(), :args)
+  end
+
+  test ":args appended after --quiet", %{repo: dir} do
+    install_fake_mix(dir, ~S"""
+    if [ "$1" = "dialyzer" ] && [ "$2" = "--quiet" ] \
+       && [ "$3" = "--halt-exit-status" ]; then
+      exit 0
+    fi
+    echo "unexpected args: $@" >&2
+    exit 41
+    """)
+
+    in_repo(dir, fn ->
+      assert :ok = Dialyzer.run([], args: ["--halt-exit-status"])
+    end)
   end
 
   test "exit 0 returns :ok", %{repo: dir} do
