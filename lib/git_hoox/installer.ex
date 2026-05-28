@@ -189,9 +189,15 @@ defmodule GitHoox.Installer do
     end
   end
 
+  # Match the basic-format ISO8601 timestamp written by backup/1 so a
+  # stray sibling like `pre-commit.backup.swp` does not outsort a real
+  # backup and get restored on uninstall.
+  @backup_suffix ~r/\.backup\.\d{8}T\d{6}Z$/
+
   defp latest_backup(path) do
     (path <> ".backup.*")
     |> Path.wildcard()
+    |> Enum.filter(&Regex.match?(@backup_suffix, &1))
     |> Enum.sort()
     |> List.last()
   end

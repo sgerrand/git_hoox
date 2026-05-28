@@ -124,6 +124,27 @@ defmodule GitHoox.InstallerTest do
     end)
   end
 
+  test "uninstall ignores backup siblings without ISO8601 suffix", %{repo: dir} do
+    hook = Path.join(dir, ".git/hooks/pre-commit")
+    File.mkdir_p!(Path.dirname(hook))
+    File.write!(hook, "#!/bin/sh\necho original\n")
+
+    in_repo(dir, fn -> {:ok, _} = Installer.install(force: true) end)
+
+    [real_backup] = Path.wildcard(hook <> ".backup.*")
+    # Plant a stray file whose name sorts after the real backup but is not
+    # a managed backup. latest_backup/1 must skip it.
+    stray = hook <> ".backup.zzz"
+    File.write!(stray, "not a backup")
+
+    in_repo(dir, fn -> {:ok, _} = Installer.uninstall() end)
+
+    assert File.read!(hook) =~ "echo original",
+           "expected #{real_backup} to be restored, not #{stray}"
+
+    assert File.exists?(stray), "stray sibling should remain on disk"
+  end
+
   test "uninstall removes only managed shims", %{repo: dir} do
     user_hook = Path.join(dir, ".git/hooks/commit-msg")
     File.mkdir_p!(Path.dirname(user_hook))
