@@ -37,16 +37,26 @@ defmodule GitHoox.Runner do
         execute(entries, files, config, stage)
       end)
     else
-      {:error, reason} -> {:error, [{:config, {:error, reason}}]}
+      {:error, {:missing_args, _} = reason} ->
+        {:error, [{:stage, {:error, reason}}]}
+
+      {:error, reason} ->
+        {:error, [{:config, {:error, reason}}]}
     end
   end
 
   defp files_for_stage(:pre_commit, _args, _stdin), do: Git.staged_files()
   defp files_for_stage(:commit_msg, [path | _], _), do: {:ok, [path]}
+  defp files_for_stage(:commit_msg, _, _), do: {:error, {:missing_args, :commit_msg}}
   defp files_for_stage(:prepare_commit_msg, [path | _], _), do: {:ok, [path]}
+
+  defp files_for_stage(:prepare_commit_msg, _, _),
+    do: {:error, {:missing_args, :prepare_commit_msg}}
+
   defp files_for_stage(:post_commit, _args, _stdin), do: Git.files_in_head()
   defp files_for_stage(:post_merge, _args, _stdin), do: Git.merge_files()
   defp files_for_stage(:post_checkout, [from, to | _], _), do: Git.diff_files(from, to)
+  defp files_for_stage(:post_checkout, _, _), do: {:error, {:missing_args, :post_checkout}}
   defp files_for_stage(:pre_rebase, _args, _stdin), do: {:ok, []}
   defp files_for_stage(:pre_push, _args, stdin), do: Git.push_files(stdin)
   defp files_for_stage(_other, _args, _stdin), do: Git.all_files()

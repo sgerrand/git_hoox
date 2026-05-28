@@ -62,6 +62,13 @@ defmodule Mix.Tasks.GitHoox.Run do
     IO.puts(:stderr, ConfigError.format(reason))
   end
 
+  defp print_failure({:stage, {:error, {:missing_args, stage}}}) do
+    IO.puts(
+      :stderr,
+      "git_hoox: stage #{stage} invoked without expected arguments from git"
+    )
+  end
+
   defp print_failure({mod, {:error, {:timeout, ms}}}) do
     IO.puts(:stderr, "#{inspect(mod)} timed out after #{ms}ms")
   end
