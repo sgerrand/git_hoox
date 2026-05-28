@@ -23,7 +23,9 @@ defmodule GitHoox.Installer do
           :not_a_git_repo
           | {:exists, Path.t(), String.t()}
 
-  @type scaffold_error :: {:config_exists, Path.t()}
+  @type scaffold_error ::
+          {:config_exists, Path.t()}
+          | {non_neg_integer(), String.t()}
 
   @type plan_entry :: {String.t(), Path.t(), action()}
 
@@ -92,15 +94,16 @@ defmodule GitHoox.Installer do
   """
   @spec scaffold(keyword()) :: {:ok, Path.t()} | {:error, scaffold_error()}
   def scaffold(opts \\ []) do
-    {:ok, root} = Git.toplevel()
-    path = Path.join(root, @config_filename)
-    force? = Keyword.get(opts, :force, false)
+    with {:ok, root} <- Git.toplevel() do
+      path = Path.join(root, @config_filename)
+      force? = Keyword.get(opts, :force, false)
 
-    if File.exists?(path) and not force? do
-      {:error, {:config_exists, path}}
-    else
-      File.write!(path, @default_config)
-      {:ok, path}
+      if File.exists?(path) and not force? do
+        {:error, {:config_exists, path}}
+      else
+        File.write!(path, @default_config)
+        {:ok, path}
+      end
     end
   end
 

@@ -63,6 +63,9 @@ defmodule Mix.Tasks.GitHoox.Install do
 
           {:error, {:config_exists, path}} ->
             Mix.shell().error("git_hoox: #{path} already exists. Re-run with --force to overwrite.")
+
+          {:error, {code, out}} when is_integer(code) ->
+            Mix.raise("git_hoox scaffold failed: git exited #{code}\n#{out}")
         end
     end
   end
