@@ -127,13 +127,13 @@ ignore it, but it is reserved.
 
 `GitHoox.Telemetry` emits `[:git_hoox, :stage, :start | :stop | :exception]`
 and `[:git_hoox, :hook, :start | :stop | :exception]` events via
-`:telemetry.span/3`. No handler is attached by default; `GitHoox.Logger`
-is the reference handler (`GitHoox.Logger.attach/0`). Stage events log at
-`:info`/`:warning`; hook events log at `:debug`/`:warning`; hook exception
-events log at `:error`. The `Runner.run_one/3` flow always goes through
-`Telemetry.hook_span/4`, so a hook with no matched files still emits a
-`:skip` stop event — useful for verifying that a glob filtered out
-everything.
+`:telemetry.span/3`. A separate single-event `[:git_hoox, :hook, :skip]`
+fires when a hook's `:files` glob filters every candidate out — there
+is no span around it because the hook never runs. No handler is
+attached by default; `GitHoox.Logger` is the reference handler
+(`GitHoox.Logger.attach/0`). Stage events log at `:info`/`:warning`;
+hook events log at `:debug`/`:warning`; hook exception events log at
+`:error`. Skipped hooks log at `:debug`.
 
 Hook timeouts and crashes both surface as `[:git_hoox, :hook, :exception]`
 events: `Runner.invoke_with_timeout!/4` traps exits and reuses `exit/1`

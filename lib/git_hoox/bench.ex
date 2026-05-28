@@ -76,6 +76,7 @@ defmodule GitHoox.Bench do
       handler_id,
       [
         [:git_hoox, :hook, :stop],
+        [:git_hoox, :hook, :skip],
         [:git_hoox, :hook, :exception]
       ],
       &__MODULE__.handle/4,
@@ -88,6 +89,10 @@ defmodule GitHoox.Bench do
   @doc false
   def handle([:git_hoox, :hook, :stop], %{duration: d}, %{module: mod, result: result}, agent) do
     record(agent, mod, d, result == :error)
+  end
+
+  def handle([:git_hoox, :hook, :skip], _measurements, %{module: mod}, agent) do
+    record(agent, mod, 0, false)
   end
 
   def handle([:git_hoox, :hook, :exception], %{duration: d}, %{module: mod}, agent) do

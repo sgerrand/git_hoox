@@ -28,6 +28,7 @@ defmodule GitHoox.Logger do
   @events [
     [:git_hoox, :stage, :stop],
     [:git_hoox, :hook, :stop],
+    [:git_hoox, :hook, :skip],
     [:git_hoox, :hook, :exception]
   ]
 
@@ -66,6 +67,11 @@ defmodule GitHoox.Logger do
       :error -> Logger.warning(msg)
       _ -> Logger.debug(msg)
     end
+  end
+
+  def handle([:git_hoox, :hook, :skip], _measurements, meta, _) do
+    %{module: mod} = meta
+    Logger.debug("[git_hoox]   #{inspect(mod)} → skip (no matched files)")
   end
 
   def handle([:git_hoox, :hook, :exception], %{duration: d}, meta, _) do

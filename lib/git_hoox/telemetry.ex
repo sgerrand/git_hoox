@@ -24,7 +24,16 @@ defmodule GitHoox.Telemetry do
 
     * Measurements as for the stage events.
     * Metadata — `%{stage: atom(), module: module(), files: non_neg_integer()}`
-    * `:stop` metadata also carries `%{result: :ok | :skip | :error, error: term() | nil}`
+    * `:stop` metadata also carries `%{result: :ok | :error, error: term() | nil}`
+
+  ### `[:git_hoox, :hook, :skip]`
+
+  Fired in place of the `:start`/`:stop` pair when a hook's `:files` glob
+  filters all candidate files out. Single event, no span — skipped hooks
+  do not run and have no measurable duration.
+
+    * Measurements — `%{system_time: integer()}`
+    * Metadata — `%{stage: atom(), module: module(), files: 0}`
 
   ## Example handler
 
@@ -65,6 +74,16 @@ defmodule GitHoox.Telemetry do
       result = fun.()
       {result, Map.merge(base, hook_stop_metadata(result))}
     end)
+  end
+
+  @doc false
+  @spec hook_skip(atom(), module()) :: :ok
+  def hook_skip(stage, module) do
+    :telemetry.execute(
+      @hook ++ [:skip],
+      %{system_time: System.system_time()},
+      %{stage: stage, module: module, files: 0}
+    )
   end
 
   defp stop_metadata(:ok), do: %{result: :ok, failures: 0}

@@ -59,15 +59,17 @@ defmodule GitHoox.TelemetryTest do
                       %{module: GitHoox.TestHooks.Fail, result: :error, error: "nope"}}
     end
 
-    test "fire stop with :skip when no files match the hook's glob", %{repo: dir, ref: ref} do
+    test "fire :skip event when no files match the hook's glob", %{repo: dir} do
+      skip_ref = attach_collector([[:git_hoox, :hook, :skip]])
+
       write_config(dir, """
       %{hooks: [pre_commit: [{GitHoox.TestHooks.Pass, files: ["lib/**/*.ex"]}]]}
       """)
 
       in_repo(dir, fn -> assert :ok = Runner.run(:pre_commit) end)
 
-      assert_receive {[:git_hoox, :hook, :stop], ^ref, _,
-                      %{module: GitHoox.TestHooks.Pass, result: :skip, files: 0}}
+      assert_receive {[:git_hoox, :hook, :skip], ^skip_ref, %{system_time: _},
+                      %{stage: :pre_commit, module: GitHoox.TestHooks.Pass, files: 0}}
     end
   end
 

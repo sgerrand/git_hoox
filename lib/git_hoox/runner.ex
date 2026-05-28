@@ -168,7 +168,8 @@ defmodule GitHoox.Runner do
     matched = filter_files(files, Keyword.fetch!(opts, :files))
 
     if matched == [] do
-      Telemetry.hook_span(stage, mod, 0, fn -> :skip end)
+      Telemetry.hook_skip(stage, mod)
+      :skip
     else
       timeout = Keyword.get(opts, :timeout, 30_000)
       invoke_traced(matched, mod, opts, timeout, stage)
