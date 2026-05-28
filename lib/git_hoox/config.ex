@@ -33,15 +33,32 @@ defmodule GitHoox.Config do
 
   defp read_file(path) do
     if File.exists?(path) do
-      {raw, _binding} = Code.eval_file(path)
-      {:ok, normalize(raw)}
+      eval_config(path)
     else
       {:error, {:missing_config, path}}
     end
   end
 
-  defp normalize(raw) when is_map(raw), do: Map.to_list(raw)
-  defp normalize(raw) when is_list(raw), do: raw
+  defp eval_config(path) do
+    try do
+      {raw, _binding} = Code.eval_file(path)
+      normalize(raw)
+    rescue
+      err ->
+        {:error, {:invalid_config, "failed to evaluate #{path}: #{Exception.message(err)}"}}
+    catch
+      kind, reason ->
+        {:error, {:invalid_config, "failed to evaluate #{path}: #{kind}: #{inspect(reason)}"}}
+    end
+  end
+
+  defp normalize(raw) when is_map(raw), do: {:ok, Map.to_list(raw)}
+  defp normalize(raw) when is_list(raw), do: {:ok, raw}
+
+  defp normalize(raw) do
+    {:error,
+     {:invalid_config, "expected config to return a map or keyword list, got: #{inspect(raw)}"}}
+  end
 
   @global_keys Schema.hook_opts_schema() |> Keyword.keys()
 

@@ -21,6 +21,30 @@ defmodule GitHoox.ConfigTest do
     assert {:error, {:missing_config, ^path}} = Config.load(path)
   end
 
+  test "syntax errors return invalid_config", %{tmp: tmp} do
+    path = write_config(tmp, "%{hooks: [pre_commit: []")
+
+    assert {:error, {:invalid_config, msg}} = Config.load(path)
+    assert msg =~ "failed to evaluate"
+    assert msg =~ path
+  end
+
+  test "runtime errors return invalid_config", %{tmp: tmp} do
+    path = write_config(tmp, ~s(raise "config boom"))
+
+    assert {:error, {:invalid_config, msg}} = Config.load(path)
+    assert msg =~ "failed to evaluate"
+    assert msg =~ "config boom"
+  end
+
+  test "non-map and non-list config value returns invalid_config", %{tmp: tmp} do
+    path = write_config(tmp, ~s("not config"))
+
+    assert {:error, {:invalid_config, msg}} = Config.load(path)
+    assert msg =~ "expected config to return a map or keyword list"
+    assert msg =~ ~s("not config")
+  end
+
   test "minimal valid config loads", %{tmp: tmp} do
     path =
       write_config(tmp, """
