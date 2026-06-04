@@ -20,6 +20,7 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - uses: erlef/setup-beam@fc68ffb90438ef2936bbb3251622353b3dcb2f93 # v1.24.0
+        id: beam
         with:
           otp-version: "28"
           elixir-version: "1.19"
@@ -29,9 +30,9 @@ jobs:
           path: |
             deps
             _build
-          key: mix-${{ runner.os }}-1.19-28-${{ hashFiles('**/mix.lock') }}
+          key: mix-${{ runner.os }}-${{ steps.beam.outputs.elixir-version }}-${{ steps.beam.outputs.otp-version }}-${{ hashFiles('**/mix.lock') }}
           restore-keys: |
-            mix-${{ runner.os }}-1.19-28-
+            mix-${{ runner.os }}-${{ steps.beam.outputs.elixir-version }}-${{ steps.beam.outputs.otp-version }}-
 
       - run: mix deps.get
       - run: mix format --check-formatted
@@ -55,6 +56,7 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - uses: erlef/setup-beam@fc68ffb90438ef2936bbb3251622353b3dcb2f93 # v1.24.0
+        id: beam
         with:
           otp-version: ${{ matrix.otp }}
           elixir-version: ${{ matrix.elixir }}
@@ -64,9 +66,9 @@ jobs:
           path: |
             deps
             _build
-          key: mix-${{ runner.os }}-${{ matrix.elixir }}-${{ matrix.otp }}-${{ hashFiles('**/mix.lock') }}
+          key: mix-${{ runner.os }}-${{ steps.beam.outputs.elixir-version }}-${{ steps.beam.outputs.otp-version }}-${{ hashFiles('**/mix.lock') }}
           restore-keys: |
-            mix-${{ runner.os }}-${{ matrix.elixir }}-${{ matrix.otp }}-
+            mix-${{ runner.os }}-${{ steps.beam.outputs.elixir-version }}-${{ steps.beam.outputs.otp-version }}-
 
       - run: mix deps.get
       - run: mix test --warnings-as-errors
@@ -78,6 +80,7 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - uses: erlef/setup-beam@fc68ffb90438ef2936bbb3251622353b3dcb2f93 # v1.24.0
+        id: beam
         with:
           otp-version: "28"
           elixir-version: "1.19"
@@ -87,9 +90,9 @@ jobs:
           path: |
             deps
             _build
-          key: mix-${{ runner.os }}-1.19-28-${{ hashFiles('**/mix.lock') }}
+          key: mix-${{ runner.os }}-${{ steps.beam.outputs.elixir-version }}-${{ steps.beam.outputs.otp-version }}-${{ hashFiles('**/mix.lock') }}
           restore-keys: |
-            mix-${{ runner.os }}-1.19-28-
+            mix-${{ runner.os }}-${{ steps.beam.outputs.elixir-version }}-${{ steps.beam.outputs.otp-version }}-
 
       - run: mix deps.get
       - run: mix coveralls.lcov
@@ -138,6 +141,7 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - uses: erlef/setup-beam@fc68ffb90438ef2936bbb3251622353b3dcb2f93 # v1.24.0
+        id: beam
         with:
           otp-version: "28"
           elixir-version: "1.19"
@@ -147,9 +151,9 @@ jobs:
           path: |
             deps
             _build
-          key: mix-${{ runner.os }}-1.19-28-${{ hashFiles('**/mix.lock') }}
+          key: mix-${{ runner.os }}-${{ steps.beam.outputs.elixir-version }}-${{ steps.beam.outputs.otp-version }}-${{ hashFiles('**/mix.lock') }}
           restore-keys: |
-            mix-${{ runner.os }}-1.19-28-
+            mix-${{ runner.os }}-${{ steps.beam.outputs.elixir-version }}-${{ steps.beam.outputs.otp-version }}-
 
       - run: mix deps.get
       - run: mix docs --warnings-as-errors
