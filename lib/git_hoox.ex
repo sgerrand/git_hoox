@@ -50,11 +50,18 @@ defmodule GitHoox do
           skip_env: String.t()
         }
 
-  @typedoc "Result of a single hook invocation."
+  @typedoc """
+  Result of a single hook invocation.
+
+  Return `:ok` for read-only success. Return `{:ok, modified}` listing
+  files the hook mutated — the runner re-stages them if `stage_fixed:
+  true`. Return `{:error, reason}` to fail the hook (and stage, unless
+  the user disabled `fail_fast`). Any other shape is a contract
+  violation and will raise inside the runner.
+  """
   @type hook_result ::
           :ok
           | {:ok, modified :: [path()]}
-          | :skip
           | {:error, term()}
 
   @doc """

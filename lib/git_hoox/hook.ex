@@ -35,7 +35,12 @@ defmodule GitHoox.Hook do
   Run hook against `files`.
 
   Return `:ok` for read-only success. Return `{:ok, modified}` listing files
-  the hook mutated — runner re-stages them if `stage_fixed: true`.
+  the hook mutated — runner re-stages them if `stage_fixed: true`. Return
+  `{:error, reason}` to fail. The runner accepts no other shapes; anything
+  else is a contract violation. The runner emits its own
+  `[:git_hoox, :hook, :skip]` telemetry event when a hook's `:files` glob
+  filters every candidate out — hook authors should not return `:skip`
+  themselves.
   """
   @callback run(files(), opts()) :: GitHoox.hook_result()
 

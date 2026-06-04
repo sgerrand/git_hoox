@@ -169,7 +169,7 @@ defmodule GitHoox.Runner do
 
     if matched == [] do
       Telemetry.hook_skip(stage, mod)
-      :skip
+      :ok
     else
       timeout = Keyword.get(opts, :timeout, 30_000)
       invoke_traced(matched, mod, opts, timeout, stage)
@@ -216,6 +216,12 @@ defmodule GitHoox.Runner do
     Enum.filter(files, fn f -> Enum.any?(regexes, &Regex.match?(&1, f)) end)
   end
 
+  # Normalize every accepted hook return to the runner's narrow outcome
+  # shape: :ok on success (with optional re-staging side effect) and the
+  # original {:error, _} on failure. Anything else is a contract violation
+  # and is allowed to FunctionClauseError so the bug surfaces immediately.
+  defp maybe_restage(:ok, _opts), do: :ok
+
   defp maybe_restage({:ok, modified}, opts) when is_list(modified) do
     if Keyword.get(opts, :stage_fixed, false) and modified != [] do
       Git.restage(modified)
@@ -224,7 +230,7 @@ defmodule GitHoox.Runner do
     :ok
   end
 
-  defp maybe_restage(other, _opts), do: other
+  defp maybe_restage({:error, _} = err, _opts), do: err
 
   defp failure?({_mod, {:error, _}}), do: true
   defp failure?(_), do: false
