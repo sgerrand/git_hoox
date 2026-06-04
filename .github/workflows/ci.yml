@@ -107,6 +107,7 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - uses: erlef/setup-beam@fc68ffb90438ef2936bbb3251622353b3dcb2f93 # v1.24.0
+        id: beam
         with:
           otp-version: "28"
           elixir-version: "1.19"
@@ -116,16 +117,16 @@ jobs:
           path: |
             deps
             _build
-          key: mix-${{ runner.os }}-1.19-28-${{ hashFiles('**/mix.lock') }}
+          key: mix-${{ runner.os }}-${{ steps.beam.outputs.elixir-version }}-${{ steps.beam.outputs.otp-version }}-${{ hashFiles('**/mix.lock') }}
           restore-keys: |
-            mix-${{ runner.os }}-1.19-28-
+            mix-${{ runner.os }}-${{ steps.beam.outputs.elixir-version }}-${{ steps.beam.outputs.otp-version }}-
 
       - uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
         with:
           path: priv/plts
-          key: plt-${{ runner.os }}-1.19-28-${{ hashFiles('**/mix.lock') }}
+          key: plt-${{ runner.os }}-${{ steps.beam.outputs.elixir-version }}-${{ steps.beam.outputs.otp-version }}-${{ hashFiles('**/mix.lock') }}
           restore-keys: |
-            plt-${{ runner.os }}-1.19-28-
+            plt-${{ runner.os }}-${{ steps.beam.outputs.elixir-version }}-${{ steps.beam.outputs.otp-version }}-
 
       - run: mix deps.get
       - run: mix dialyzer --format github
