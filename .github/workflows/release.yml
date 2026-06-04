@@ -4,6 +4,8 @@ on:
   push:
     branches: [main]
 
+permissions: {}
+
 jobs:
   release-please:
     uses: release-mate/action/.github/workflows/release-please.yml@71f10a09c0b5161420efe386fdfa657f9f7d5688 # v1.1.1
