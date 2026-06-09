@@ -61,6 +61,44 @@ defmodule Mix.Tasks.GitHoox.InstallTest do
     assert out =~ "already exists"
   end
 
+  test "auto_deps_get: true in config adds deps.get prelude to shims", %{repo: dir} do
+    File.write!(
+      Path.join(dir, ".git_hoox.exs"),
+      "%{hooks: [pre_commit: [{GitHoox.TestHooks.Pass, []}]], auto_deps_get: true}"
+    )
+
+    capture_io(fn ->
+      in_repo(dir, fn -> assert :ok = InstallTask.run([]) end)
+    end)
+
+    content = File.read!(Path.join(dir, ".git/hooks/pre-commit"))
+    assert content =~ "mix deps.get --check-locked >/dev/null 2>&1 || mix deps.get"
+  end
+
+  test "config without auto_deps_get leaves shims unchanged", %{repo: dir} do
+    File.write!(
+      Path.join(dir, ".git_hoox.exs"),
+      "%{hooks: [pre_commit: [{GitHoox.TestHooks.Pass, []}]]}"
+    )
+
+    capture_io(fn ->
+      in_repo(dir, fn -> assert :ok = InstallTask.run([]) end)
+    end)
+
+    content = File.read!(Path.join(dir, ".git/hooks/pre-commit"))
+    refute content =~ "mix deps.get"
+  end
+
+  test "missing config leaves auto_deps_get off without failing install", %{repo: dir} do
+    out =
+      capture_io(fn ->
+        in_repo(dir, fn -> assert :ok = InstallTask.run([]) end)
+      end)
+
+    assert out =~ "git_hoox installed (8 shims)"
+    refute File.read!(Path.join(dir, ".git/hooks/pre-commit")) =~ "mix deps.get"
+  end
+
   test "existing foreign hook without --force raises with formatted message", %{repo: dir} do
     path = Path.join(dir, ".git/hooks/pre-commit")
     File.mkdir_p!(Path.dirname(path))
