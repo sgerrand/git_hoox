@@ -69,6 +69,15 @@ Key modules:
 - `GitHoox.Installer` — writes shims for all 8 stages; refuses to overwrite
   foreign hooks unless `:force`, in which case it backs up to
   `<hook>.backup.<utc-iso8601>`. `scaffold/1` writes a starter `.git_hoox.exs`.
+  `install/1` takes `:auto_deps_get` — when true, `shim/2` prepends
+  `mix deps.get --check-locked >/dev/null 2>&1 || mix deps.get` before the
+  `exec mix git_hoox.run` line. This self-heals the "Unchecked dependencies"
+  lock-mismatch failure that otherwise kills the runner at boot (Mix refuses
+  every task but `deps.*` while deps are stale, so a Shell hook in the config
+  can never reach it). The flag is a top-level `.git_hoox.exs` option read by
+  `mix git_hoox.install` and baked into the static shims, so changing it
+  requires re-running install; a missing or invalid config leaves it off
+  rather than failing the install.
 - `GitHoox.Glob` — hand-rolled `match?/2` for hook `:files` filters. Supports
   `**/`, `**`, `*`, `?`. Covered by `test/git_hoox/glob_test.exs` with
   concrete cases, doctests, and StreamData properties. Two property

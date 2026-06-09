@@ -10,6 +10,11 @@ defmodule Mix.Tasks.GitHoox.Install do
       mix git_hoox.install --scaffold   # also write a starter .git_hoox.exs
 
   Detects `core.hooksPath` and worktrees via `git rev-parse --git-path hooks`.
+
+  When `.git_hoox.exs` sets `auto_deps_get: true`, each shim first runs
+  `mix deps.get` if the lock is out of date, so a stale `mix.lock` no longer
+  fails the hook with "Unchecked dependencies". Re-run this task after
+  changing the flag to regenerate the shims.
   """
 
   use Mix.Task
@@ -21,6 +26,7 @@ defmodule Mix.Tasks.GitHoox.Install do
   @spec run([String.t()]) :: :ok
   def run(argv) do
     {opts, _, _} = OptionParser.parse(argv, switches: @switches, aliases: @aliases)
+    opts = Keyword.put(opts, :auto_deps_get, auto_deps_get?())
 
     case GitHoox.Installer.install(opts) do
       {:ok, plan} ->
@@ -30,6 +36,16 @@ defmodule Mix.Tasks.GitHoox.Install do
 
       {:error, reason} ->
         Mix.raise(format_error(reason))
+    end
+  end
+
+  # Read the top-level :auto_deps_get flag from .git_hoox.exs. The shim is
+  # generated at install time, so a missing or invalid config simply leaves
+  # the flag off rather than failing the install.
+  defp auto_deps_get? do
+    case GitHoox.Config.load() do
+      {:ok, config} -> Map.get(config, :auto_deps_get, false)
+      {:error, _} -> false
     end
   end
 

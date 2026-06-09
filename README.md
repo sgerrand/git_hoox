@@ -80,9 +80,32 @@ Top-level options:
 | `parallel`  | boolean | `false` | Run hooks within a stage concurrently.          |
 | `fail_fast` | boolean | `false` | Stop on first failure within a stage.           |
 | `skip_env`  | string  | `"GIT_HOOX"` | Env var consulted for skip/exclude flags.  |
+| `auto_deps_get` | boolean | `false` | Fetch locked deps before each hook runs.    |
 
 Supported stages: `pre_commit`, `prepare_commit_msg`, `commit_msg`,
 `post_commit`, `pre_rebase`, `post_checkout`, `post_merge`, `pre_push`.
+
+### Keeping deps in sync
+
+When `mix.lock` changes (after a pull or branch switch), the next hook can
+fail before it even starts:
+
+```
+** (Mix) Can't continue due to errors on dependencies
+* ex_doc (Hex package)
+  lock mismatch: the dependency is out of date. To fetch locked version run "mix deps.get"
+```
+
+The shim runs `mix git_hoox.run`, and Mix refuses that task while deps are
+out of date — so no hook can fix it from inside the config.
+
+Set `auto_deps_get: true` to have each shim run `mix deps.get` first, but
+only when the lock is out of date (it checks with `--check-locked`, which is
+a no-op when the lock already matches). Re-run `mix git_hoox.install` after
+changing the flag to regenerate the shims.
+
+This adds one quick Mix call per hook run. Leave it off if you keep deps in
+sync by hand.
 
 ## Built-in Hooks
 

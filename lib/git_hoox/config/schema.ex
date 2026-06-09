@@ -46,6 +46,16 @@ defmodule GitHoox.Config.Schema do
       type: :string,
       default: "GIT_HOOX",
       doc: "Env var name. Set to `0` to disable all hooks."
+    ],
+    auto_deps_get: [
+      type: :boolean,
+      default: false,
+      doc:
+        "Fetch locked deps before each hook runs, preventing " <>
+          "\"Unchecked dependencies\" lock-mismatch failures. The shim " <>
+          "runs `mix deps.get` only when the lock is out of date. Re-run " <>
+          "`mix git_hoox.install` after changing this value to regenerate " <>
+          "the shims."
     ]
   ]
 

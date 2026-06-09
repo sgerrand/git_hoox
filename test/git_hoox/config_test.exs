@@ -55,6 +55,7 @@ defmodule GitHoox.ConfigTest do
     assert config.parallel == false
     assert config.fail_fast == false
     assert config.skip_env == "GIT_HOOX"
+    assert config.auto_deps_get == false
     assert [pre_commit: [{GitHoox.TestHooks.Pass, opts}]] = config.hooks
     assert opts[:files] == ["**/*"]
     assert opts[:timeout] == 30_000
@@ -68,7 +69,8 @@ defmodule GitHoox.ConfigTest do
         hooks: [pre_commit: []],
         parallel: true,
         fail_fast: true,
-        skip_env: "MY_HOOX"
+        skip_env: "MY_HOOX",
+        auto_deps_get: true
       }
       """)
 
@@ -76,6 +78,7 @@ defmodule GitHoox.ConfigTest do
     assert config.parallel == true
     assert config.fail_fast == true
     assert config.skip_env == "MY_HOOX"
+    assert config.auto_deps_get == true
   end
 
   test "invalid stage atom rejected", %{tmp: tmp} do

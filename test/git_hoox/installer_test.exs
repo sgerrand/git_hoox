@@ -20,6 +20,25 @@ defmodule GitHoox.InstallerTest do
     assert Bitwise.band(mode, 0o111) != 0
   end
 
+  test "default shim has no deps.get prelude", %{repo: dir} do
+    in_repo(dir, fn -> Installer.install() end)
+
+    content = File.read!(Path.join(dir, ".git/hooks/pre-commit"))
+    refute content =~ "mix deps.get"
+  end
+
+  test "auto_deps_get prepends a deps.get self-heal line", %{repo: dir} do
+    in_repo(dir, fn -> Installer.install(auto_deps_get: true) end)
+
+    content = File.read!(Path.join(dir, ".git/hooks/pre-commit"))
+    assert content =~ "# git_hoox managed"
+    assert content =~ "mix deps.get --check-locked >/dev/null 2>&1 || mix deps.get"
+    assert content =~ "exec mix git_hoox.run pre-commit"
+    # prelude must run before the exec line replaces the process
+    assert :binary.match(content, "mix deps.get --check-locked") <
+             :binary.match(content, "exec mix git_hoox.run")
+  end
+
   test "installs all stages", %{repo: dir} do
     in_repo(dir, fn -> Installer.install() end)
 

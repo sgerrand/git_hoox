@@ -69,16 +69,19 @@ defmodule GitHoox.Installer do
 
     * `:force` — overwrite user hooks with backup. Default `false`.
     * `:dry_run` — print plan, no writes. Default `false`.
+    * `:auto_deps_get` — prepend a `mix deps.get` self-heal line to each
+      shim. Default `false`.
   """
   @spec install(keyword()) :: {:ok, [plan_entry()]} | {:error, install_error()}
   def install(opts \\ []) do
     force? = Keyword.get(opts, :force, false)
     dry? = Keyword.get(opts, :dry_run, false)
+    auto? = Keyword.get(opts, :auto_deps_get, false)
 
     with {:ok, dir} <- Git.hooks_dir(),
          :ok <- File.mkdir_p(dir),
          {:ok, plan} <- plan(dir, force?) do
-      execute(plan, dry?)
+      execute(plan, dry?, auto?)
     end
   end
 
@@ -159,12 +162,12 @@ defmodule GitHoox.Installer do
     end
   end
 
-  defp execute(plan, true), do: {:ok, plan}
+  defp execute(plan, true, _auto?), do: {:ok, plan}
 
-  defp execute(plan, false) do
+  defp execute(plan, false, auto?) do
     Enum.each(plan, fn {hook, path, action} ->
       if action == :overwrite_with_backup, do: backup(path)
-      File.write!(path, shim(hook))
+      File.write!(path, shim(hook, auto?))
       File.chmod!(path, 0o755)
     end)
 
@@ -202,10 +205,19 @@ defmodule GitHoox.Installer do
     |> List.last()
   end
 
-  defp shim(hook) do
+  defp shim(hook, false) do
     """
     #!/usr/bin/env sh
     #{@marker}
+    exec mix git_hoox.run #{hook} "$@"
+    """
+  end
+
+  defp shim(hook, true) do
+    """
+    #!/usr/bin/env sh
+    #{@marker}
+    mix deps.get --check-locked >/dev/null 2>&1 || mix deps.get
     exec mix git_hoox.run #{hook} "$@"
     """
   end
