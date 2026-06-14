@@ -5,6 +5,38 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0](https://github.com/sgerrand/git_hoox/compare/v0.4.2...v0.5.0) (2026-06-14)
+
+
+### Features
+
+* **hooks:** add Mix hook for arbitrary mix tasks ([d8954be](https://github.com/sgerrand/git_hoox/commit/d8954be7babce77a4166566aae977fcab222bb24))
+* **hooks:** forward :args to mix in Test/Format/Credo/Dialyzer ([74efdcc](https://github.com/sgerrand/git_hoox/commit/74efdcc480c730c1829948d341dc4e47353ce250))
+* **installer:** add auto_deps_get to self-heal stale dep locks ([cd1884a](https://github.com/sgerrand/git_hoox/commit/cd1884af31ed6caca823eee6994927fbad1753fb))
+* **telemetry:** split :hook :skip into its own event ([e134bad](https://github.com/sgerrand/git_hoox/commit/e134bad216da8d084f1a01cbdcb8e4fd0bf813fd))
+
+
+### Bug Fixes
+
+* **ci:** key dialyzer PLT cache on resolved OTP/Elixir versions ([5358432](https://github.com/sgerrand/git_hoox/commit/5358432a487be34e3233e183d4950246e8d0a1fd))
+* **config:** handle malformed config errors ([6403ff1](https://github.com/sgerrand/git_hoox/commit/6403ff1b65829fd13bf28b2f943a9baa53a6d764))
+* **hooks:** default Hooks.Mix :files so Runner can dispatch ([197a3e6](https://github.com/sgerrand/git_hoox/commit/197a3e6e6b7410661937eb24714aac4c4252e5a5))
+* **installer:** propagate Git.toplevel error from scaffold ([ac2599c](https://github.com/sgerrand/git_hoox/commit/ac2599c490002f52ddac1e3b35dc42c3ade73853))
+* **installer:** restrict backup restore to ISO8601-suffixed siblings ([ff1bc94](https://github.com/sgerrand/git_hoox/commit/ff1bc946b714f7652157cdd12d571720bc5500ce))
+* **runner:** return missing_args error instead of crashing ([b17a813](https://github.com/sgerrand/git_hoox/commit/b17a813e245c34a4119f2dc31c530925d90463c8))
+
+
+### Refactor
+
+* **config:** normalize hook options at load time ([01341a8](https://github.com/sgerrand/git_hoox/commit/01341a8f026996a432c91317ccbccac37dc1e89d))
+* **config:** use implicit try in eval_config ([36ad1f1](https://github.com/sgerrand/git_hoox/commit/36ad1f12cb9aa5f3d0aa9fbf53c89e4f8a08611f))
+* **hook:** tighten run/2 return contract ([44dafca](https://github.com/sgerrand/git_hoox/commit/44dafca1957662449fc6e9b1dd0695e22d282216))
+
+
+### Documentation
+
+* document :args opt and Hooks.Mix module ([a88196e](https://github.com/sgerrand/git_hoox/commit/a88196e1dae4a96da490608b3fa114f0d902f50d))
+
 ## [0.4.2](https://github.com/sgerrand/git_hoox/compare/v0.4.1...v0.4.2) (2026-05-27)
 
 
