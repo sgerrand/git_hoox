@@ -9,7 +9,7 @@ permissions: {}
 jobs:
   release-mate:
     name: Release Mate
-    uses: release-mate/action/.github/workflows/release-please.yml@71f10a09c0b5161420efe386fdfa657f9f7d5688 # v1.1.1
+    uses: release-mate/action/.github/workflows/release-please.yml@ab5434d252b3c7e7fd57abe6a2e611f04c25213b # v1.2.0
     secrets:
       client-id: ${{ secrets.RELEASE_MATE_CLIENT_ID }}
       app-private-key: ${{ secrets.RELEASE_MATE_PRIVATE_KEY }}
