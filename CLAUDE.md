@@ -144,6 +144,22 @@ attached by default; `GitHoox.Logger` is the reference handler
 hook events log at `:debug`/`:warning`; hook exception events log at
 `:error`. Skipped hooks log at `:debug`.
 
+`GitHoox.Reporter` is a second reference handler, attached by
+`mix git_hoox.run` unless `config :git_hoox, reporter: false`. It prints
+coloured per-hook and per-stage status lines to the terminal via plain
+`IO` (not `Logger`): a `→` stage header, a `▸` running marker, then a
+green `✓` or red `✗` with the duration, and a final stage summary.
+Stages with zero configured hooks print nothing. Colour is decided once
+at `attach/0` — `GIT_HOOX_COLOR` (`always`/`never`), then `NO_COLOR`,
+then `CLICOLOR_FORCE`/`FORCE_COLOR`, then `IO.ANSI.enabled?/0`. The run
+task starts `:telemetry` before attaching: the task runs without the app
+started, and while `:telemetry.span`/`execute` tolerate that,
+`:telemetry.attach` needs the app up (and the handler needs it up to
+receive events). The start is guarded so it can never block a commit.
+Writes go through the task's group leader, so in `parallel: true` mode a
+hook's lines land in its capture buffer and flush as one contiguous
+block, exactly like the hook's own output.
+
 Hook timeouts and crashes both surface as `[:git_hoox, :hook, :exception]`
 events: `Runner.invoke_with_timeout!/4` traps exits and reuses `exit/1`
 as the unwind mechanism — a timeout exits with `{:git_hoox_timeout, ms}`,

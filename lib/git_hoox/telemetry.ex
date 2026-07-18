@@ -4,8 +4,9 @@ defmodule GitHoox.Telemetry do
 
   GitHoox emits two pairs of `:telemetry` events: one around each stage, one
   around each individual hook invocation. Events are emitted unconditionally;
-  no handler is attached by default. Attach `GitHoox.Logger` for the
-  reference console output, or attach your own handler for custom routing.
+  no handler is attached by default. Attach `GitHoox.Reporter` for coloured
+  terminal status, `GitHoox.Logger` for `Logger`-backed output, or attach
+  your own handler for custom routing.
 
   ## Events
 
