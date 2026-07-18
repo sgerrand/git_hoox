@@ -9,6 +9,13 @@ defmodule Mix.Tasks.GitHoox.Run do
   Invoked by `.git/hooks/<stage>` shims. Not usually run directly.
   Stage names use kebab-case to match git's hook filenames; they are
   converted to atoms internally.
+
+  ## Output
+
+  Attaches `GitHoox.Reporter` to print coloured hook status to the
+  terminal. Turn it off with `config :git_hoox, reporter: false`. Colour
+  follows `GIT_HOOX_COLOR` (`always`/`never`), `NO_COLOR`, and
+  `CLICOLOR_FORCE`/`FORCE_COLOR`, and otherwise turns on only on a TTY.
   """
 
   use Mix.Task
@@ -21,6 +28,7 @@ defmodule Mix.Tasks.GitHoox.Run do
   def run([stage | args]) do
     atom = parse_stage!(stage)
     stdin = read_stdin(atom)
+    maybe_attach_reporter()
 
     case GitHoox.run(atom, args, stdin) do
       :ok ->
@@ -33,6 +41,21 @@ defmodule Mix.Tasks.GitHoox.Run do
   end
 
   def run([]), do: Mix.raise("Usage: mix git_hoox.run <stage>")
+
+  # The task runs without the app (and so without :telemetry) started.
+  # :telemetry.span/execute tolerate that and simply reach no handlers,
+  # but :telemetry.attach needs the app up — and the reporter needs it up
+  # to receive events at all. Start it first, and never let a hiccup here
+  # block the commit: reporting is cosmetic.
+  defp maybe_attach_reporter do
+    if Application.get_env(:git_hoox, :reporter, true) and telemetry_started?() do
+      GitHoox.Reporter.attach()
+    end
+  end
+
+  defp telemetry_started? do
+    match?({:ok, _}, Application.ensure_all_started(:telemetry))
+  end
 
   defp parse_stage!(stage) do
     case Schema.parse_stage(stage) do

@@ -5,6 +5,7 @@ defmodule GitHoox.ReporterTest do
 
   alias GitHoox.Reporter
   alias GitHoox.Runner
+  alias Mix.Tasks.GitHoox.Run, as: RunTask
 
   defp in_repo(dir, fun), do: File.cd!(dir, fun)
 
@@ -413,6 +414,57 @@ defmodule GitHoox.ReporterTest do
 
       assert stop_idx == start_idx + 1,
              "expected #{mod} start/stop contiguous, got #{start_idx}/#{stop_idx} in:\n#{Enum.join(lines, "\n")}"
+    end
+  end
+
+  describe "mix task wiring" do
+    setup %{repo: dir} do
+      on_exit(fn ->
+        Application.put_env(:git_hoox, :reporter, false)
+        Reporter.detach()
+      end)
+
+      write(dir, "lib/foo.ex", "x\n")
+      stage(dir, ["lib/foo.ex"])
+
+      write_config(dir, """
+      %{hooks: [pre_commit: [{GitHoox.TestHooks.Pass, []}]]}
+      """)
+
+      :ok
+    end
+
+    defp attached? do
+      Enum.any?(
+        :telemetry.list_handlers([:git_hoox, :stage, :start]),
+        &(&1.id == "git_hoox.reporter")
+      )
+    end
+
+    test "reporter: true attaches the handler and prints status", %{repo: dir} do
+      Application.put_env(:git_hoox, :reporter, true)
+
+      out =
+        capture_io(fn ->
+          in_repo(dir, fn -> RunTask.run(["pre-commit"]) end)
+        end)
+
+      # Substring survives colour: the hook line is a single dimmed
+      # segment, unlike the stage line which colour splits mid-string.
+      assert out =~ "▸ GitHoox.TestHooks.Pass"
+      assert attached?()
+    end
+
+    test "reporter: false leaves the handler unattached and silent", %{repo: dir} do
+      Application.put_env(:git_hoox, :reporter, false)
+
+      out =
+        capture_io(fn ->
+          in_repo(dir, fn -> RunTask.run(["pre-commit"]) end)
+        end)
+
+      refute out =~ "▸"
+      refute attached?()
     end
   end
 end
