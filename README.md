@@ -124,7 +124,8 @@ Defaults: `stage_fixed: true`, `files: ~w(**/*.ex **/*.exs **/*.heex)`.
 
 `:args` are inserted between any built-in flag (`--check-formatted`) and
 the trailing file list — final shape:
-`mix format [--check-formatted] <args...> <files...>`.
+`mix format [--check-formatted] <args...> -- <files...>`. The `--` stops
+`mix format` reading a filename that starts with `-` as an option.
 
 ### `GitHoox.Hooks.Credo`
 
@@ -138,8 +139,9 @@ Runs `mix credo` against staged Elixir files.
 
 Defaults: `stage_fixed: false`, `files: ~w(lib/**/*.ex test/**/*.exs)`.
 
-`:args` are inserted before `--files-included` — final shape:
-`mix credo [--strict] <args...> --files-included <files...>`.
+`:args` are inserted before the file list — final shape:
+`mix credo [--strict] <args...> -- <files...>`. The `--` stops credo from
+reading a filename that starts with `-` as an option.
 
 ### `GitHoox.Hooks.Test`
 
@@ -156,7 +158,9 @@ Defaults: `stage_fixed: false`, `scope: :all`.
 
 `:args` are spliced after the scope flag and before any related-test
 paths — final shape:
-`mix test [--stale] <args...> [<related_test_files>]`.
+`mix test <args...> [-- <related_test_files>]` (or `--stale` for that scope).
+The `--` before related paths stops `mix test` reading a `-`-prefixed path
+as an option.
 
 ### `GitHoox.Hooks.Dialyzer`
 
