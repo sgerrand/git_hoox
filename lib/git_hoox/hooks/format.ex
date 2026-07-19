@@ -8,7 +8,8 @@ defmodule GitHoox.Hooks.Format do
     * `:args` — extra CLI args appended after the task name (and the
       `--check-formatted` flag when `:check_only` is set). Default `[]`.
 
-  Argument order: `mix format [--check-formatted] <user_args...> <files...>`.
+  Argument order: `mix format [--check-formatted] <user_args...> -- <files...>`.
+  The `--` stops `mix format` parsing a `-`-prefixed filename as an option.
 
   ## Defaults
 
@@ -51,9 +52,9 @@ defmodule GitHoox.Hooks.Format do
 
     args =
       if Keyword.get(opts, :check_only, false) do
-        ["format", "--check-formatted" | extra] ++ files
+        ["format", "--check-formatted" | extra] ++ ["--" | files]
       else
-        ["format" | extra] ++ files
+        ["format" | extra] ++ ["--" | files]
       end
 
     case Cmd.run("mix", args, env: Helpers.env_opt(opts)) do

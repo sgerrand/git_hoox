@@ -9,7 +9,9 @@ defmodule GitHoox.Hooks.Test do
       scope-derived flag. Default `[]`. Example:
       `["--warnings-as-errors"]`.
 
-  Argument order: `mix test [--stale] <user_args...> [<related_test_files>]`.
+  Argument order: `mix test [--stale] <user_args...> [-- <related_test_files>]`.
+  The `--` before related paths stops `mix test` parsing a `-`-prefixed path
+  as an option.
 
   ## Defaults
 
@@ -69,7 +71,7 @@ defmodule GitHoox.Hooks.Test do
   defp run_related(files, extra, opts) do
     case related_test_files(files) do
       [] -> :ok
-      related -> exec(["test" | extra] ++ related, opts)
+      related -> exec(["test" | extra] ++ ["--" | related], opts)
     end
   end
 

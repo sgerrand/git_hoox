@@ -98,7 +98,7 @@ defmodule GitHoox.Hooks.TestHookTest do
   test ":args precede related test files for scope :related", %{repo: dir} do
     install_fake_mix(dir, ~S"""
     if [ "$1" = "test" ] && [ "$2" = "--warnings-as-errors" ] \
-       && [ "$3" = "test/foo_test.exs" ]; then
+       && [ "$3" = "--" ] && [ "$4" = "test/foo_test.exs" ]; then
       exit 0
     fi
     echo "unexpected args: $@" >&2
@@ -113,6 +113,25 @@ defmodule GitHoox.Hooks.TestHookTest do
                  scope: :related,
                  args: ["--warnings-as-errors"]
                )
+    end)
+  end
+
+  test "-- separator neutralizes dash-leading related paths", %{repo: dir} do
+    # A related test path beginning with `-` must reach mix test as a
+    # positional path (after `--`), never as an option.
+    install_fake_mix(dir, ~S"""
+    if [ "$1" = "test" ] && [ "$2" = "--" ] \
+       && [ "$3" = "--evil_test.exs" ]; then
+      exit 0
+    fi
+    echo "unexpected args: $@" >&2
+    exit 14
+    """)
+
+    write(dir, "--evil_test.exs", "x\n")
+
+    in_repo(dir, fn ->
+      assert :ok = TestHook.run(["--evil.ex"], scope: :related)
     end)
   end
 
