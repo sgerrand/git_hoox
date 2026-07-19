@@ -71,9 +71,12 @@ defmodule GitHoox.Reporter do
   @doc false
   def handle([:git_hoox, :stage, :start], _measurements, %{entries: 0}, _config), do: :ok
 
-  def handle([:git_hoox, :stage, :start], _measurements, meta, config) do
-    %{stage: stage, entries: e, files: f} = meta
-
+  def handle(
+        [:git_hoox, :stage, :start],
+        _measurements,
+        %{stage: stage, entries: e, files: f},
+        config
+      ) do
     emit(config, [
       :cyan,
       "→ ",
@@ -88,9 +91,12 @@ defmodule GitHoox.Reporter do
 
   def handle([:git_hoox, :stage, :stop], _measurements, %{entries: 0}, _config), do: :ok
 
-  def handle([:git_hoox, :stage, :stop], %{duration: d}, %{result: :ok} = meta, config) do
-    %{stage: stage, entries: e} = meta
-
+  def handle(
+        [:git_hoox, :stage, :stop],
+        %{duration: d},
+        %{result: :ok, stage: stage, entries: e},
+        config
+      ) do
     emit(config, [
       :green,
       "✓ ",
@@ -101,9 +107,12 @@ defmodule GitHoox.Reporter do
     ])
   end
 
-  def handle([:git_hoox, :stage, :stop], %{duration: d}, %{result: :error} = meta, config) do
-    %{stage: stage, entries: e, failures: fl} = meta
-
+  def handle(
+        [:git_hoox, :stage, :stop],
+        %{duration: d},
+        %{result: :error, stage: stage, entries: e, failures: fl},
+        config
+      ) do
     emit(config, [
       :red,
       "✗ ",
@@ -120,61 +129,66 @@ defmodule GitHoox.Reporter do
     ])
   end
 
-  def handle([:git_hoox, :stage, :exception], _measurements, meta, config) do
-    emit(config, [:red, "✗ ", stage_name(meta.stage), " · crashed", :reset])
+  def handle([:git_hoox, :stage, :exception], _measurements, %{stage: stage}, config) do
+    emit(config, [:red, "✗ ", stage_name(stage), " · crashed", :reset])
   end
 
-  def handle([:git_hoox, :hook, :start], _measurements, meta, config) do
-    emit(config, [:light_black, "  ▸ #{hook_name(meta.module)}"])
+  def handle([:git_hoox, :hook, :start], _measurements, %{module: mod}, config) do
+    emit(config, [:light_black, "  ▸ #{hook_name(mod)}"])
   end
 
-  def handle([:git_hoox, :hook, :stop], %{duration: d}, %{result: :ok} = meta, config) do
+  def handle([:git_hoox, :hook, :stop], %{duration: d}, %{result: :ok, module: mod}, config) do
     emit(config, [
       :green,
       "  ✓ ",
       :reset,
-      hook_name(meta.module),
+      hook_name(mod),
       :light_black,
       " · #{format_duration(d)}"
     ])
   end
 
-  def handle([:git_hoox, :hook, :stop], _measurements, %{result: :skip} = meta, config) do
-    emit(config, [:light_black, "  - #{hook_name(meta.module)} · skipped (no matched files)"])
-  end
-
-  def handle([:git_hoox, :hook, :stop], %{duration: d}, %{result: :error} = meta, config) do
-    emit(config, [
-      :red,
-      "  ✗ ",
-      :reset,
-      hook_name(meta.module),
-      :light_black,
-      " · ",
-      :reset,
-      :red,
-      reason_label(meta.error),
-      :reset,
-      :light_black,
-      " · #{format_duration(d)}"
-    ])
-  end
-
-  def handle([:git_hoox, :hook, :skip], _measurements, meta, config) do
-    emit(config, [:light_black, "  - #{hook_name(meta.module)} · skipped (no matched files)"])
+  def handle([:git_hoox, :hook, :stop], _measurements, %{result: :skip, module: mod}, config) do
+    emit(config, [:light_black, "  - #{hook_name(mod)} · skipped (no matched files)"])
   end
 
   def handle(
-        [:git_hoox, :hook, :exception],
-        _measurements,
-        %{reason: {:git_hoox_timeout, ms}} = meta,
+        [:git_hoox, :hook, :stop],
+        %{duration: d},
+        %{result: :error, module: mod, error: error},
         config
       ) do
     emit(config, [
       :red,
       "  ✗ ",
       :reset,
-      hook_name(meta.module),
+      hook_name(mod),
+      :light_black,
+      " · ",
+      :reset,
+      :red,
+      reason_label(error),
+      :reset,
+      :light_black,
+      " · #{format_duration(d)}"
+    ])
+  end
+
+  def handle([:git_hoox, :hook, :skip], _measurements, %{module: mod}, config) do
+    emit(config, [:light_black, "  - #{hook_name(mod)} · skipped (no matched files)"])
+  end
+
+  def handle(
+        [:git_hoox, :hook, :exception],
+        _measurements,
+        %{reason: {:git_hoox_timeout, ms}, module: mod},
+        config
+      ) do
+    emit(config, [
+      :red,
+      "  ✗ ",
+      :reset,
+      hook_name(mod),
       :light_black,
       " · ",
       :reset,
@@ -184,9 +198,12 @@ defmodule GitHoox.Reporter do
     ])
   end
 
-  def handle([:git_hoox, :hook, :exception], _measurements, meta, config) do
-    %{module: mod, kind: kind, reason: reason} = meta
-
+  def handle(
+        [:git_hoox, :hook, :exception],
+        _measurements,
+        %{module: mod, kind: kind, reason: reason},
+        config
+      ) do
     emit(config, [
       :red,
       "  ✗ ",
