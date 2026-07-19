@@ -261,6 +261,77 @@ defmodule GitHoox.ReporterTest do
     end
   end
 
+  describe "colour never leaks past a line" do
+    setup do
+      Reporter.attach(color: true)
+      :ok
+    end
+
+    # Every event that produces coloured output. IO.ANSI.format/2 appends
+    # a trailing reset automatically, but pin it: a future switch to
+    # format_fragment/2 or hand-rolled escapes would drop the reset and
+    # leak the last style into the user's shell prompt.
+    @leak_cases [
+      {[:git_hoox, :stage, :start], %{system_time: 0}, %{stage: :pre_commit, entries: 3, files: 5}},
+      {[:git_hoox, :stage, :stop], %{duration: 1_000_000},
+       %{stage: :pre_commit, entries: 3, files: 5, result: :ok, failures: 0}},
+      {[:git_hoox, :stage, :stop], %{duration: 1_000_000},
+       %{stage: :pre_commit, entries: 3, files: 5, result: :error, failures: 1}},
+      {[:git_hoox, :stage, :exception], %{duration: 1_000_000},
+       %{stage: :pre_commit, entries: 1, files: 1, kind: :error, reason: :boom, stacktrace: []}},
+      {[:git_hoox, :hook, :start], %{system_time: 0},
+       %{stage: :pre_commit, module: GitHoox.Hooks.Format, files: 2}},
+      {[:git_hoox, :hook, :stop], %{duration: 1_000_000},
+       %{stage: :pre_commit, module: GitHoox.Hooks.Format, files: 2, result: :ok, error: nil}},
+      {[:git_hoox, :hook, :stop], %{duration: 1_000_000},
+       %{
+         stage: :pre_commit,
+         module: GitHoox.Hooks.Credo,
+         files: 2,
+         result: :error,
+         error: {1, "out"}
+       }},
+      {[:git_hoox, :hook, :stop], %{duration: 1_000_000},
+       %{stage: :pre_commit, module: GitHoox.Hooks.Format, files: 2, result: :error, error: :boom}},
+      {[:git_hoox, :hook, :stop], %{duration: 1_000_000},
+       %{stage: :pre_commit, module: GitHoox.Hooks.Test, files: 0, result: :skip, error: nil}},
+      {[:git_hoox, :hook, :skip], %{system_time: 0},
+       %{stage: :pre_commit, module: GitHoox.Hooks.Test, files: 0}},
+      {[:git_hoox, :hook, :exception], %{duration: 1_000_000},
+       %{
+         stage: :pre_commit,
+         module: GitHoox.Hooks.Test,
+         files: 2,
+         kind: :exit,
+         reason: {:git_hoox_timeout, 30_000},
+         stacktrace: []
+       }},
+      {[:git_hoox, :hook, :exception], %{duration: 1_000_000},
+       %{
+         stage: :pre_commit,
+         module: GitHoox.Hooks.Format,
+         files: 2,
+         kind: :error,
+         reason: %RuntimeError{message: "boom"},
+         stacktrace: []
+       }}
+    ]
+
+    test "every coloured line ends with a reset" do
+      reset = IO.ANSI.reset()
+
+      for {event, measurements, meta} <- @leak_cases do
+        line = fire(event, measurements, meta) |> String.trim_trailing("\n")
+
+        assert String.contains?(line, "\e["),
+               "expected colour codes for #{inspect(event)}"
+
+        assert String.ends_with?(line, reset),
+               "colour leaked (no trailing reset) for #{inspect(event)}: #{inspect(line)}"
+      end
+    end
+  end
+
   describe "colour policy" do
     @color_vars ~w(GIT_HOOX_COLOR NO_COLOR CLICOLOR_FORCE FORCE_COLOR)
     @start_event [:git_hoox, :stage, :start]
