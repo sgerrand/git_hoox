@@ -1,6 +1,6 @@
 style = "conventional"
 subject_length = 400
-line_length = 92
+line_length = 400
 subject_capitalized = false
 imperative_subject = true
 no_fixup = true
