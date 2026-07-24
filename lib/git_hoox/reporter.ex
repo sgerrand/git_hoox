@@ -149,7 +149,7 @@ defmodule GitHoox.Reporter do
   end
 
   def handle([:git_hoox, :hook, :stop], _measurements, %{result: :skip, module: mod}, config) do
-    emit(config, [:light_black, "  - #{hook_name(mod)} · skipped (no matched files)"])
+    emit(config, [:light_black, "  - #{hook_name(mod)} · skipped"])
   end
 
   def handle(
