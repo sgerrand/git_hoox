@@ -185,7 +185,7 @@ defmodule GitHoox.ReporterTest do
           error: nil
         })
 
-      assert out == "  - Test · skipped (no matched files)\n"
+      assert out == "  - Test · skipped\n"
     end
 
     test "skip event prints dimmed skip line" do
