@@ -55,6 +55,7 @@ defmodule GitHoox.Bench do
   defp summary_for(mod, natives, errors) do
     ms_list = natives |> Enum.map(&to_ms/1) |> Enum.sort()
     n = length(ms_list)
+    total = Enum.sum(ms_list)
 
     %{
       module: mod,
@@ -63,8 +64,8 @@ defmodule GitHoox.Bench do
       p50_ms: percentile(ms_list, 50),
       p95_ms: percentile(ms_list, 95),
       max_ms: List.last(ms_list) || 0,
-      mean_ms: if(n > 0, do: Enum.sum(ms_list) / n, else: 0),
-      total_ms: Enum.sum(ms_list)
+      mean_ms: if(n > 0, do: total / n, else: 0),
+      total_ms: total
     }
   end
 
