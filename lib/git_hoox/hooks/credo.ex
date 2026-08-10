@@ -19,7 +19,6 @@ defmodule GitHoox.Hooks.Credo do
 
   @behaviour GitHoox.Hook
 
-  alias GitHoox.Cmd
   alias GitHoox.Hooks.Helpers
 
   @opts_schema [
@@ -28,11 +27,7 @@ defmodule GitHoox.Hooks.Credo do
       default: false,
       doc: "Pass `--strict` to credo."
     ],
-    args: [
-      type: {:list, :string},
-      default: [],
-      doc: "Extra CLI args appended after the task name and --strict flag."
-    ]
+    args: Helpers.args_schema("Extra CLI args appended after the task name and --strict flag.")
   ]
 
   @impl true
@@ -54,6 +49,6 @@ defmodule GitHoox.Hooks.Credo do
     extra = Keyword.get(opts, :args, [])
     args = ["credo"] ++ strict ++ extra ++ ["--" | files]
 
-    Cmd.run("mix", args, env: Helpers.env_opt(opts)) |> Helpers.to_result()
+    Helpers.mix(args, opts)
   end
 end
