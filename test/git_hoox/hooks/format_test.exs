@@ -80,9 +80,10 @@ defmodule GitHoox.Hooks.FormatTest do
 
     write(dir, "lib/foo.ex", "x\n")
 
+    # check_only never mutates, so the hook returns a bare :ok and skips the
+    # `git diff` that would look for files to re-stage.
     in_repo(dir, fn ->
-      assert {:ok, _} =
-               Format.run(["lib/foo.ex"], check_only: true, args: ["--dry-run"])
+      assert :ok = Format.run(["lib/foo.ex"], check_only: true, args: ["--dry-run"])
     end)
   end
 
@@ -118,7 +119,7 @@ defmodule GitHoox.Hooks.FormatTest do
     write(dir, "lib/foo.ex", "x\n")
 
     in_repo(dir, fn ->
-      assert {:ok, _} = Format.run(["lib/foo.ex"], check_only: true)
+      assert :ok = Format.run(["lib/foo.ex"], check_only: true)
     end)
   end
 end
