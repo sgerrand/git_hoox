@@ -109,17 +109,8 @@ defmodule GitHoox.Runner do
 
   defp run_serial(entries, files, config, stage) do
     entries
-    |> Enum.reduce_while([], fn entry, acc ->
-      result = run_one(entry, files, stage)
-      acc = [{elem(entry, 0), result} | acc]
-
-      if config.fail_fast and failure?({elem(entry, 0), result}) do
-        {:halt, acc}
-      else
-        {:cont, acc}
-      end
-    end)
-    |> Enum.reverse()
+    |> Stream.map(fn {mod, _} = entry -> {mod, run_one(entry, files, stage)} end)
+    |> collect(config.fail_fast)
   end
 
   defp run_parallel(entries, files, config, stage) do
@@ -130,10 +121,18 @@ defmodule GitHoox.Runner do
       ordered: false,
       timeout: :infinity
     )
-    |> Enum.reduce_while([], fn {:ok, outcome}, acc ->
+    |> Stream.map(fn {:ok, outcome} -> outcome end)
+    |> collect(config.fail_fast)
+  end
+
+  # Both dispatch paths produce a lazy stream of outcomes; consuming it
+  # lazily means a fail_fast halt stops the remaining hooks from running.
+  defp collect(outcomes, fail_fast?) do
+    outcomes
+    |> Enum.reduce_while([], fn outcome, acc ->
       acc = [outcome | acc]
 
-      if config.fail_fast and failure?(outcome) do
+      if fail_fast? and failure?(outcome) do
         {:halt, acc}
       else
         {:cont, acc}
