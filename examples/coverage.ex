@@ -34,7 +34,7 @@ defmodule MyApp.Hooks.Coverage do
   def run(_files, opts) do
     threshold = Keyword.fetch!(opts, :threshold)
 
-    case System.cmd("mix", ["coveralls"], stderr_to_stdout: true) do
+    case GitHoox.Cmd.run("mix", ["coveralls"]) do
       {out, 0} ->
         case parse_total(out) do
           {:ok, total} when total >= threshold ->
