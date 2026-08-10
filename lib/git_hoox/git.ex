@@ -60,21 +60,11 @@ defmodule GitHoox.Git do
 
   @doc "Return absolute path of `.git/hooks/` honoring core.hooksPath + worktrees."
   @spec hooks_dir() :: {:ok, Path.t()} | git_error()
-  def hooks_dir do
-    case cmd(["rev-parse", "--git-path", "hooks"]) do
-      {:ok, out} -> {:ok, String.trim(out)}
-      err -> err
-    end
-  end
+  def hooks_dir, do: trimmed(["rev-parse", "--git-path", "hooks"])
 
   @doc "Return repo root via `git rev-parse --show-toplevel`."
   @spec toplevel() :: {:ok, Path.t()} | git_error()
-  def toplevel do
-    case cmd(["rev-parse", "--show-toplevel"]) do
-      {:ok, out} -> {:ok, String.trim(out)}
-      err -> err
-    end
-  end
+  def toplevel, do: trimmed(["rev-parse", "--show-toplevel"])
 
   @doc "Files touched by the HEAD commit (used for post-commit)."
   @spec files_in_head() :: {:ok, [GitHoox.path()]} | git_error()
@@ -159,6 +149,10 @@ defmodule GitHoox.Git do
       {out, 0} -> {:ok, out}
       {out, code} -> {:error, {code, out}}
     end
+  end
+
+  defp trimmed(args) do
+    with {:ok, out} <- cmd(args), do: {:ok, String.trim(out)}
   end
 
   defp parse_z({:ok, out}), do: {:ok, split_z(out)}
