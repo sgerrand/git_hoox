@@ -75,13 +75,28 @@ defmodule GitHoox.GitFixture do
     end
   end
 
+  # Git exports GIT_DIR, GIT_INDEX_FILE, GIT_PREFIX and friends into any
+  # hook it runs. Inheriting those would point every fixture `git` call at
+  # the repo being committed/pushed instead of the temp repo, so drop the
+  # whole GIT_* namespace (except our own skip vars) before layering the
+  # hermetic settings on top. Explicit entries come last so they win over
+  # the unsets for keys git also exports (e.g. GIT_AUTHOR_DATE).
   defp clean_env do
-    [
-      {"GIT_CONFIG_GLOBAL", "/dev/null"},
-      {"GIT_CONFIG_SYSTEM", "/dev/null"},
-      {"GIT_AUTHOR_DATE", "2026-01-01T00:00:00Z"},
-      {"GIT_COMMITTER_DATE", "2026-01-01T00:00:00Z"}
-    ]
+    unset_inherited_git_vars() ++
+      [
+        {"GIT_CONFIG_GLOBAL", "/dev/null"},
+        {"GIT_CONFIG_SYSTEM", "/dev/null"},
+        {"GIT_AUTHOR_DATE", "2026-01-01T00:00:00Z"},
+        {"GIT_COMMITTER_DATE", "2026-01-01T00:00:00Z"}
+      ]
+  end
+
+  defp unset_inherited_git_vars do
+    System.get_env()
+    |> Map.keys()
+    |> Enum.filter(&String.starts_with?(&1, "GIT_"))
+    |> Enum.reject(&String.starts_with?(&1, "GIT_HOOX"))
+    |> Enum.map(&{&1, nil})
   end
 
   defp mk_tmp do

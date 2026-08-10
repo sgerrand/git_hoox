@@ -7,7 +7,9 @@
       {GitHoox.Hooks.Mix, task: "deps.unlock", args: ["--check-unused"]}
     ],
     pre_push: [
-      {GitHoox.Hooks.Test, scope: :stale}
+      # The suite spins up real temp git repos and takes well over the
+      # 30s default on a cold build.
+      {GitHoox.Hooks.Test, scope: :stale, timeout: 300_000}
     ]
   ]
 }
