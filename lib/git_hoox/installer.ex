@@ -6,10 +6,13 @@ defmodule GitHoox.Installer do
   and replace. Detects own shims by `# git_hoox managed` marker.
   """
 
+  alias GitHoox.Config
+  alias GitHoox.Config.Schema
   alias GitHoox.Git
 
-  @hooks ~w(pre-commit prepare-commit-msg commit-msg post-commit
-            pre-rebase post-checkout post-merge pre-push)
+  # Derived from Schema.valid_stages/0 so adding a stage writes a shim
+  # without a second list to keep in sync.
+  @hooks Schema.hook_filenames()
 
   @marker "# git_hoox managed"
 
@@ -29,11 +32,9 @@ defmodule GitHoox.Installer do
 
   @type plan_entry :: {String.t(), Path.t(), action()}
 
-  @config_filename ".git_hoox.exs"
-
   @doc "Name of the per-repo config file."
   @spec config_filename() :: String.t()
-  def config_filename, do: @config_filename
+  def config_filename, do: Config.default_path()
 
   @doc "Kebab-case names of every git stage git_hoox manages."
   @spec hook_names() :: [String.t()]
@@ -98,7 +99,7 @@ defmodule GitHoox.Installer do
   @spec scaffold(keyword()) :: {:ok, Path.t()} | {:error, scaffold_error()}
   def scaffold(opts \\ []) do
     with {:ok, root} <- Git.toplevel() do
-      path = Path.join(root, @config_filename)
+      path = Path.join(root, config_filename())
       force? = Keyword.get(opts, :force, false)
 
       if File.exists?(path) and not force? do
@@ -115,14 +116,14 @@ defmodule GitHoox.Installer do
   def uninstall(_opts \\ []) do
     case Git.hooks_dir() do
       {:ok, dir} ->
-        count =
+        paths =
           @hooks
           |> Enum.map(&Path.join(dir, &1))
           |> Enum.filter(&managed?/1)
-          |> Enum.map(&remove_with_restore/1)
-          |> Enum.count()
 
-        {:ok, count}
+        Enum.each(paths, &remove_with_restore/1)
+
+        {:ok, length(paths)}
 
       {:error, _} ->
         {:ok, 0}
@@ -145,20 +146,23 @@ defmodule GitHoox.Installer do
   end
 
   defp classify(path, force?) do
-    cond do
-      not File.exists?(path) ->
+    case File.read(path) do
+      {:error, _} ->
         :write
 
-      managed?(path) ->
-        :overwrite_managed
+      {:ok, content} ->
+        cond do
+          String.contains?(content, @marker) ->
+            :overwrite_managed
 
-      force? ->
-        :overwrite_with_backup
+          force? ->
+            :overwrite_with_backup
 
-      true ->
-        {:error,
-         {:exists, path,
-          "Hook exists and is not managed by git_hoox. Re-run with --force to backup and overwrite."}}
+          true ->
+            {:error,
+             {:exists, path,
+              "Hook exists and is not managed by git_hoox. Re-run with --force to backup and overwrite."}}
+        end
     end
   end
 
@@ -205,20 +209,13 @@ defmodule GitHoox.Installer do
     |> List.last()
   end
 
-  defp shim(hook, false) do
-    """
-    #!/usr/bin/env sh
-    #{@marker}
-    exec mix git_hoox.run #{hook} "$@"
-    """
-  end
+  @deps_get_line "mix deps.get --check-locked >/dev/null 2>&1 || mix deps.get\n"
 
-  defp shim(hook, true) do
+  defp shim(hook, auto?) do
     """
     #!/usr/bin/env sh
     #{@marker}
-    mix deps.get --check-locked >/dev/null 2>&1 || mix deps.get
-    exec mix git_hoox.run #{hook} "$@"
+    #{if auto?, do: @deps_get_line, else: ""}exec mix git_hoox.run #{hook} "$@"
     """
   end
 end

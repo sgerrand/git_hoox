@@ -84,4 +84,14 @@ defmodule GitHoox.Config.Schema do
       atom -> {:ok, atom}
     end
   end
+
+  @doc "Kebab-case git hook filename for a stage atom. Inverse of `parse_stage/1`."
+  @spec hook_filename(atom()) :: String.t()
+  def hook_filename(stage) when is_atom(stage) do
+    stage |> Atom.to_string() |> String.replace("_", "-")
+  end
+
+  @doc "Kebab-case git hook filenames for every stage, in `valid_stages/0` order."
+  @spec hook_filenames() :: [String.t()]
+  def hook_filenames, do: Enum.map(@stages, &hook_filename/1)
 end
