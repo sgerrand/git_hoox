@@ -158,7 +158,8 @@ Defaults: `stage_fixed: false`, `scope: :all`.
 
 `:args` are spliced after the scope flag and before any related-test
 paths — final shape:
-`mix test <args...> [-- <related_test_files>]` (or `--stale` for that scope).
+`mix test [--stale] <args...> [-- <related_test_files>]`. `--stale` only
+appears for `scope: :stale`; related paths only for `scope: :related`.
 The `--` before related paths stops `mix test` reading a `-`-prefixed path
 as an option.
 
@@ -202,6 +203,13 @@ Options:
 | `:append_files`  | boolean | `false` | Append the matched file list as trailing arguments.       |
 
 Defaults: `stage_fixed: false`.
+
+Final shape: `mix <task> <args...> [-- <files...>]`. The `--` is added
+only when `append_files: true`, and stops the task reading a filename
+that starts with `-` as an option. The task must treat `--` as an
+options terminator — anything built on `OptionParser` does. A task that
+reads raw `System.argv/0` sees a literal `"--"` in its path list; use
+`GitHoox.Hooks.Shell` with `{files}` for those.
 
 When `append_files: true` and the runner passes an empty file list, the
 hook returns `:ok` without running mix. This avoids the trailing-space
