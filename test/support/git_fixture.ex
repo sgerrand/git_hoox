@@ -127,10 +127,16 @@ defmodule GitHoox.GitFixture do
     |> Enum.map(&{&1, nil})
   end
 
+  # System.unique_integer/1 restarts at 1 in every VM, so a bare counter
+  # collides with repos left behind by earlier runs: `git init` re-inits
+  # the stale repo, its "init" commit is already there, and the fixture
+  # dies with "nothing to commit, working tree clean". Scope the name to
+  # this OS process and clear any directory that somehow survives.
   defp mk_tmp do
     base = System.tmp_dir!()
-    name = "git_hoox_test_#{System.unique_integer([:positive])}"
+    name = "git_hoox_test_#{System.pid()}_#{System.unique_integer([:positive])}"
     dir = Path.join(base, name)
+    File.rm_rf!(dir)
     File.mkdir_p!(dir)
     dir
   end
