@@ -1,13 +1,21 @@
 defmodule GitHoox.GitFixture do
   @moduledoc false
 
+  # Test identity, passed per-invocation via `git -c` rather than written
+  # with `git config`. A config write lands wherever the command resolves
+  # its repo, so if a GIT_DIR ever leaks in again the write would persist
+  # these credentials in a real repository's config and silently author
+  # that user's commits as "Test". `-c` cannot outlive the process.
+  @identity [
+    {"user.email", "test@git_hoox.local"},
+    {"user.name", "Test"},
+    {"commit.gpgsign", "false"}
+  ]
+
   @spec init_repo(keyword()) :: Path.t()
   def init_repo(opts \\ []) do
     dir = mk_tmp()
     sh!(dir, ["init", "-q", "-b", "main"])
-    sh!(dir, ["config", "user.email", "test@git_hoox.local"])
-    sh!(dir, ["config", "user.name", "Test"])
-    sh!(dir, ["config", "commit.gpgsign", "false"])
 
     if Keyword.get(opts, :initial_commit, false) do
       write(dir, "README.md", "init\n")
@@ -64,7 +72,27 @@ defmodule GitHoox.GitFixture do
 
   @spec sh(Path.t(), [String.t()]) :: {String.t(), non_neg_integer()}
   def sh(dir, args) do
-    System.cmd("git", args, cd: dir, stderr_to_stdout: true, env: clean_env())
+    refute_inherited_git_dir!()
+    System.cmd("git", identity_flags() ++ args, cd: dir, stderr_to_stdout: true, env: clean_env())
+  end
+
+  defp identity_flags do
+    Enum.flat_map(@identity, fn {key, value} -> ["-c", "#{key}=#{value}"] end)
+  end
+
+  # `cd:` does not win against GIT_DIR — git would target the leaked repo
+  # instead of `dir`, writing fixture commits into it. test_helper.exs
+  # clears these before ExUnit starts; fail loudly rather than corrupt a
+  # real repository if that ever stops working.
+  defp refute_inherited_git_dir! do
+    case Enum.filter(~w(GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE), &System.get_env/1) do
+      [] ->
+        :ok
+
+      leaked ->
+        raise "inherited #{Enum.join(leaked, ", ")} would retarget fixture git calls " <>
+                "at a real repository — test_helper.exs should have cleared these"
+    end
   end
 
   @spec sh!(Path.t(), [String.t()]) :: String.t()
