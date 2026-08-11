@@ -80,22 +80,22 @@ defmodule GitHoox.Hooks.CredoTest do
   test "strict: true inserts --strict before positional files", %{repo: dir} do
     install_fake_mix(dir, ~S"""
     strict_pos=""
-    files_pos=""
+    sep_pos=""
     i=0
     for arg in "$@"; do
       i=$((i + 1))
       case "$arg" in
         --strict) strict_pos=$i ;;
-        --files-included) files_pos=$i ;;
+        --) [ -z "$sep_pos" ] && sep_pos=$i ;;
       esac
     done
     if [ -z "$strict_pos" ]; then
       echo "no strict: $*" >&2 ; exit 7
     fi
-    if [ -z "$files_pos" ]; then
-      echo "no --files-included: $*" >&2 ; exit 8
+    if [ -z "$sep_pos" ]; then
+      echo "no -- separator: $*" >&2 ; exit 8
     fi
-    if [ "$strict_pos" -lt "$files_pos" ]; then
+    if [ "$strict_pos" -lt "$sep_pos" ]; then
       exit 0
     fi
     echo "strict after files: $*" >&2 ; exit 9
