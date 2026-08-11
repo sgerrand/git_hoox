@@ -8,7 +8,8 @@ defmodule GitHoox.Hooks.Credo do
     * `:args` — extra CLI args appended after the task name (and
       `--strict` when set). Default `[]`.
 
-  Argument order: `mix credo [--strict] <user_args...> --files-included <files...>`.
+  Argument order: `mix credo [--strict] <user_args...> -- <files...>`. The
+  `--` stops credo parsing a `-`-prefixed filename as an option.
 
   ## Defaults
 
@@ -51,7 +52,7 @@ defmodule GitHoox.Hooks.Credo do
   def run(files, opts) do
     strict = if Keyword.get(opts, :strict, false), do: ["--strict"], else: []
     extra = Keyword.get(opts, :args, [])
-    args = ["credo"] ++ strict ++ extra ++ ["--files-included" | files]
+    args = ["credo"] ++ strict ++ extra ++ ["--" | files]
 
     Cmd.run("mix", args, env: Helpers.env_opt(opts)) |> Helpers.to_result()
   end

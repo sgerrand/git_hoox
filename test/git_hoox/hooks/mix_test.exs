@@ -59,11 +59,11 @@ defmodule GitHoox.Hooks.MixTest do
     end)
   end
 
-  test ":append_files appends matched files", %{repo: dir} do
+  test ":append_files appends matched files after --", %{repo: dir} do
     install_fake_mix(dir, ~S"""
-    # Expect: lint --quiet lib/foo.ex lib/bar.ex
-    if [ "$1" = "lint" ] && [ "$2" = "--quiet" ] \
-       && [ "$3" = "lib/foo.ex" ] && [ "$4" = "lib/bar.ex" ]; then
+    # Expect: lint --quiet -- lib/foo.ex lib/bar.ex
+    if [ "$1" = "lint" ] && [ "$2" = "--quiet" ] && [ "$3" = "--" ] \
+       && [ "$4" = "lib/foo.ex" ] && [ "$5" = "lib/bar.ex" ]; then
       exit 0
     fi
     echo "unexpected: $@" >&2
@@ -77,6 +77,21 @@ defmodule GitHoox.Hooks.MixTest do
                  args: ["--quiet"],
                  append_files: true
                )
+    end)
+  end
+
+  test ":append_files puts a dash-leading filename after --", %{repo: dir} do
+    install_fake_mix(dir, ~S"""
+    # A file named --version must land after the terminator, not before.
+    if [ "$1" = "lint" ] && [ "$2" = "--" ] && [ "$3" = "--version" ]; then
+      exit 0
+    fi
+    echo "unexpected: $@" >&2
+    exit 10
+    """)
+
+    in_repo(dir, fn ->
+      assert :ok = MixHook.run(["--version"], task: "lint", append_files: true)
     end)
   end
 

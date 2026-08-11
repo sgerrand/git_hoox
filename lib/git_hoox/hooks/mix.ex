@@ -21,6 +21,14 @@ defmodule GitHoox.Hooks.Mix do
       Default `false`. Set to `true` for tasks that accept paths
       (e.g. a custom `mix lint <files>`); see "Empty file list" below.
 
+  Argument order: `mix <task> <user_args...> [-- <files...>]`. The `--`
+  is inserted only when `append_files: true`, and stops the task reading
+  a filename that starts with `-` as an option. The invoked task must
+  parse `--` as an options terminator — `OptionParser` does this, so any
+  task built on `OptionParser.parse/2` (or `parse!/2`) is fine. A task
+  that reads `System.argv/0` raw sees a literal `"--"` in its path list;
+  use `GitHoox.Hooks.Shell` with `{files}` for those.
+
   ## Defaults
 
     * `stage_fixed: false`
@@ -92,7 +100,7 @@ defmodule GitHoox.Hooks.Mix do
 
     cond do
       append? and files == [] -> :ok
-      append? -> exec([task | args] ++ files, opts)
+      append? -> exec([task | args] ++ ["--" | files], opts)
       true -> exec([task | args], opts)
     end
   end

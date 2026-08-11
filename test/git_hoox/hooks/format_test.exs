@@ -51,9 +51,9 @@ defmodule GitHoox.Hooks.FormatTest do
 
   test ":args splice between task and files", %{repo: dir} do
     install_fake_mix(dir, ~S"""
-    # Expect: format --dot-formatter custom.exs lib/foo.ex
+    # Expect: format --dot-formatter custom.exs -- lib/foo.ex
     if [ "$1" = "format" ] && [ "$2" = "--dot-formatter" ] \
-       && [ "$3" = "custom.exs" ] && [ "$4" = "lib/foo.ex" ]; then
+       && [ "$3" = "custom.exs" ] && [ "$4" = "--" ] && [ "$5" = "lib/foo.ex" ]; then
       exit 0
     fi
     echo "unexpected args: $@" >&2
@@ -71,7 +71,7 @@ defmodule GitHoox.Hooks.FormatTest do
   test ":args splice after --check-formatted when check_only", %{repo: dir} do
     install_fake_mix(dir, ~S"""
     if [ "$1" = "format" ] && [ "$2" = "--check-formatted" ] \
-       && [ "$3" = "--dry-run" ] && [ "$4" = "lib/foo.ex" ]; then
+       && [ "$3" = "--dry-run" ] && [ "$4" = "--" ] && [ "$5" = "lib/foo.ex" ]; then
       exit 0
     fi
     echo "unexpected args: $@" >&2
@@ -83,6 +83,25 @@ defmodule GitHoox.Hooks.FormatTest do
     in_repo(dir, fn ->
       assert {:ok, _} =
                Format.run(["lib/foo.ex"], check_only: true, args: ["--dry-run"])
+    end)
+  end
+
+  test "-- separator neutralizes dash-leading filenames", %{repo: dir} do
+    # A git-supplied filename beginning with `-` must reach mix as a positional
+    # arg (after `--`), never as an option like --dot-formatter=... (RCE vector).
+    install_fake_mix(dir, ~S"""
+    if [ "$1" = "format" ] && [ "$2" = "--" ] \
+       && [ "$3" = "--dot-formatter=payload.exs" ]; then
+      exit 0
+    fi
+    echo "unexpected args: $@" >&2
+    exit 23
+    """)
+
+    write(dir, "lib/foo.ex", "x\n")
+
+    in_repo(dir, fn ->
+      assert {:ok, _} = Format.run(["--dot-formatter=payload.exs"], [])
     end)
   end
 

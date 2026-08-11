@@ -1,13 +1,21 @@
 defmodule GitHoox.GitFixture do
   @moduledoc false
 
+  # Test identity, passed per-invocation via `git -c` rather than written
+  # with `git config`. A config write lands wherever the command resolves
+  # its repo, so if a GIT_DIR ever leaks in again the write would persist
+  # these credentials in a real repository's config and silently author
+  # that user's commits as "Test". `-c` cannot outlive the process.
+  @identity [
+    {"user.email", "test@git_hoox.local"},
+    {"user.name", "Test"},
+    {"commit.gpgsign", "false"}
+  ]
+
   @spec init_repo(keyword()) :: Path.t()
   def init_repo(opts \\ []) do
     dir = mk_tmp()
     sh!(dir, ["init", "-q", "-b", "main"])
-    sh!(dir, ["config", "user.email", "test@git_hoox.local"])
-    sh!(dir, ["config", "user.name", "Test"])
-    sh!(dir, ["config", "commit.gpgsign", "false"])
 
     if Keyword.get(opts, :initial_commit, false) do
       write(dir, "README.md", "init\n")
@@ -64,7 +72,27 @@ defmodule GitHoox.GitFixture do
 
   @spec sh(Path.t(), [String.t()]) :: {String.t(), non_neg_integer()}
   def sh(dir, args) do
-    System.cmd("git", args, cd: dir, stderr_to_stdout: true, env: clean_env())
+    refute_inherited_git_dir!()
+    System.cmd("git", identity_flags() ++ args, cd: dir, stderr_to_stdout: true, env: clean_env())
+  end
+
+  defp identity_flags do
+    Enum.flat_map(@identity, fn {key, value} -> ["-c", "#{key}=#{value}"] end)
+  end
+
+  # `cd:` does not win against GIT_DIR — git would target the leaked repo
+  # instead of `dir`, writing fixture commits into it. test_helper.exs
+  # clears these before ExUnit starts; fail loudly rather than corrupt a
+  # real repository if that ever stops working.
+  defp refute_inherited_git_dir! do
+    case Enum.filter(~w(GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE), &System.get_env/1) do
+      [] ->
+        :ok
+
+      leaked ->
+        raise "inherited #{Enum.join(leaked, ", ")} would retarget fixture git calls " <>
+                "at a real repository — test_helper.exs should have cleared these"
+    end
   end
 
   @spec sh!(Path.t(), [String.t()]) :: String.t()
@@ -75,19 +103,40 @@ defmodule GitHoox.GitFixture do
     end
   end
 
+  # Git exports GIT_DIR, GIT_INDEX_FILE, GIT_PREFIX and friends into any
+  # hook it runs. Inheriting those would point every fixture `git` call at
+  # the repo being committed/pushed instead of the temp repo, so drop the
+  # whole GIT_* namespace (except our own skip vars) before layering the
+  # hermetic settings on top. Explicit entries come last so they win over
+  # the unsets for keys git also exports (e.g. GIT_AUTHOR_DATE).
   defp clean_env do
-    [
-      {"GIT_CONFIG_GLOBAL", "/dev/null"},
-      {"GIT_CONFIG_SYSTEM", "/dev/null"},
-      {"GIT_AUTHOR_DATE", "2026-01-01T00:00:00Z"},
-      {"GIT_COMMITTER_DATE", "2026-01-01T00:00:00Z"}
-    ]
+    unset_inherited_git_vars() ++
+      [
+        {"GIT_CONFIG_GLOBAL", "/dev/null"},
+        {"GIT_CONFIG_SYSTEM", "/dev/null"},
+        {"GIT_AUTHOR_DATE", "2026-01-01T00:00:00Z"},
+        {"GIT_COMMITTER_DATE", "2026-01-01T00:00:00Z"}
+      ]
   end
 
+  defp unset_inherited_git_vars do
+    System.get_env()
+    |> Map.keys()
+    |> Enum.filter(&String.starts_with?(&1, "GIT_"))
+    |> Enum.reject(&String.starts_with?(&1, "GIT_HOOX"))
+    |> Enum.map(&{&1, nil})
+  end
+
+  # System.unique_integer/1 restarts at 1 in every VM, so a bare counter
+  # collides with repos left behind by earlier runs: `git init` re-inits
+  # the stale repo, its "init" commit is already there, and the fixture
+  # dies with "nothing to commit, working tree clean". Scope the name to
+  # this OS process and clear any directory that somehow survives.
   defp mk_tmp do
     base = System.tmp_dir!()
-    name = "git_hoox_test_#{System.unique_integer([:positive])}"
+    name = "git_hoox_test_#{System.pid()}_#{System.unique_integer([:positive])}"
     dir = Path.join(base, name)
+    File.rm_rf!(dir)
     File.mkdir_p!(dir)
     dir
   end
