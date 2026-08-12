@@ -22,7 +22,7 @@ Add `git_hoox` to your dev dependencies in `mix.exs`:
 ```elixir
 def deps do
   [
-    {:git_hoox, "~> 0.4.2", only: [:dev], runtime: false}
+    {:git_hoox, "~> 0.5.0", only: [:dev], runtime: false}
   ]
 end
 ```
