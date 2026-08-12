@@ -109,17 +109,8 @@ defmodule GitHoox.Runner do
 
   defp run_serial(entries, files, config, stage) do
     entries
-    |> Enum.reduce_while([], fn entry, acc ->
-      result = run_one(entry, files, stage)
-      acc = [{elem(entry, 0), result} | acc]
-
-      if config.fail_fast and failure?({elem(entry, 0), result}) do
-        {:halt, acc}
-      else
-        {:cont, acc}
-      end
-    end)
-    |> Enum.reverse()
+    |> Stream.map(fn {mod, _} = entry -> {mod, run_one(entry, files, stage)} end)
+    |> collect(config.fail_fast)
   end
 
   defp run_parallel(entries, files, config, stage) do
@@ -130,10 +121,25 @@ defmodule GitHoox.Runner do
       ordered: false,
       timeout: :infinity
     )
-    |> Enum.reduce_while([], fn {:ok, outcome}, acc ->
+    |> Stream.map(fn {:ok, outcome} -> outcome end)
+    |> collect(config.fail_fast)
+  end
+
+  # Both dispatch paths produce a lazy stream of outcomes, so a fail_fast
+  # halt stops later hooks being dispatched. What it does to work already
+  # underway differs: serially there is none, but in parallel the halt
+  # tears down the async_stream, which terminates the hooks still in
+  # flight. Those tasks do not trap exits, so run_with_captured_io/3's
+  # `after` never runs — a cancelled hook prints nothing at all, and can
+  # leave half-finished side effects behind (a formatter mid-write).
+  # Ordinary hook timeouts are unaffected; they are enforced per hook by
+  # invoke_with_timeout!/4, well inside the task.
+  defp collect(outcomes, fail_fast?) do
+    outcomes
+    |> Enum.reduce_while([], fn outcome, acc ->
       acc = [outcome | acc]
 
-      if config.fail_fast and failure?(outcome) do
+      if fail_fast? and failure?(outcome) do
         {:halt, acc}
       else
         {:cont, acc}

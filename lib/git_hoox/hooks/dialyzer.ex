@@ -20,15 +20,10 @@ defmodule GitHoox.Hooks.Dialyzer do
 
   @behaviour GitHoox.Hook
 
-  alias GitHoox.Cmd
   alias GitHoox.Hooks.Helpers
 
   @opts_schema [
-    args: [
-      type: {:list, :string},
-      default: [],
-      doc: "Extra CLI args appended after `--quiet`."
-    ]
+    args: Helpers.args_schema("Extra CLI args appended after `--quiet`.")
   ]
 
   @impl true
@@ -47,6 +42,6 @@ defmodule GitHoox.Hooks.Dialyzer do
     extra = Keyword.get(opts, :args, [])
     args = ["dialyzer", "--quiet" | extra]
 
-    Cmd.run("mix", args, env: Helpers.env_opt(opts)) |> Helpers.to_result()
+    Helpers.mix(args, opts)
   end
 end

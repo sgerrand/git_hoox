@@ -63,11 +63,9 @@ defmodule Mix.Tasks.GitHoox.Run do
         atom
 
       :error ->
-        valid = Schema.valid_stages()
-
         Mix.raise(
           "Unknown git_hoox stage: #{stage}. Valid: " <>
-            Enum.map_join(valid, ", ", &(&1 |> Atom.to_string() |> String.replace("_", "-")))
+            Enum.join(Schema.hook_filenames(), ", ")
         )
     end
   end

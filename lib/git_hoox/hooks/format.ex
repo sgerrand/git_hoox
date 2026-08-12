@@ -19,7 +19,6 @@ defmodule GitHoox.Hooks.Format do
 
   @behaviour GitHoox.Hook
 
-  alias GitHoox.Cmd
   alias GitHoox.Hooks.Helpers
 
   @opts_schema [
@@ -28,11 +27,7 @@ defmodule GitHoox.Hooks.Format do
       default: false,
       doc: "Use `mix format --check-formatted`. Fails instead of mutating."
     ],
-    args: [
-      type: {:list, :string},
-      default: [],
-      doc: "Extra CLI args appended after the task name and check flag."
-    ]
+    args: Helpers.args_schema("Extra CLI args appended after the task name and check flag.")
   ]
 
   @impl true
@@ -48,16 +43,14 @@ defmodule GitHoox.Hooks.Format do
   def run([], _opts), do: :ok
 
   def run(files, opts) do
-    extra = Keyword.get(opts, :args, [])
+    check? = Keyword.get(opts, :check_only, false)
+    check_flag = if check?, do: ["--check-formatted"], else: []
+    args = ["format"] ++ check_flag ++ Keyword.get(opts, :args, []) ++ ["--" | files]
 
-    args =
-      if Keyword.get(opts, :check_only, false) do
-        ["format", "--check-formatted" | extra] ++ ["--" | files]
-      else
-        ["format" | extra] ++ ["--" | files]
-      end
-
-    case Cmd.run("mix", args, env: Helpers.env_opt(opts)) do
+    case Helpers.cmd("mix", args, opts) do
+      # --check-formatted never writes, so there is nothing to re-stage and
+      # no reason to pay for a `git diff` to find out.
+      {_, 0} when check? -> :ok
       {_, 0} -> {:ok, GitHoox.Git.changed_in_worktree(files)}
       tuple -> Helpers.to_result(tuple)
     end

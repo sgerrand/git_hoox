@@ -96,6 +96,5 @@ defmodule GitHoox.Telemetry do
 
   defp hook_stop_metadata(:ok), do: %{result: :ok, error: nil}
   defp hook_stop_metadata({:ok, _modified}), do: %{result: :ok, error: nil}
-  defp hook_stop_metadata(:skip), do: %{result: :skip, error: nil}
   defp hook_stop_metadata({:error, reason}), do: %{result: :error, error: reason}
 end

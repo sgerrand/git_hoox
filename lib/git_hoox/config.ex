@@ -82,39 +82,39 @@ defmodule GitHoox.Config do
     end
   end
 
-  defp validate_hook_entries(top) do
-    Enum.reduce_while(top[:hooks], {:ok, []}, fn {stage, entries}, {:ok, acc} ->
-      case validate_entries(stage, entries) do
-        {:ok, entries} -> {:cont, {:ok, [{stage, entries} | acc]}}
+  # Map `fun` over `enum`, collecting `{:ok, value}` results and halting on
+  # the first error, which is returned as-is.
+  defp map_ok(enum, fun) do
+    Enum.reduce_while(enum, [], fn item, acc ->
+      case fun.(item) do
+        {:ok, value} -> {:cont, [value | acc]}
         err -> {:halt, err}
       end
     end)
     |> case do
-      {:ok, hooks} -> {:ok, Keyword.put(top, :hooks, Enum.reverse(hooks))}
+      acc when is_list(acc) -> {:ok, Enum.reverse(acc)}
       err -> err
     end
   end
 
+  defp validate_hook_entries(top) do
+    result =
+      map_ok(top[:hooks], fn {stage, entries} ->
+        with {:ok, entries} <- validate_entries(stage, entries), do: {:ok, {stage, entries}}
+      end)
+
+    with {:ok, hooks} <- result, do: {:ok, Keyword.put(top, :hooks, hooks)}
+  end
+
   defp validate_entries(stage, entries) when is_list(entries) do
-    Enum.reduce_while(entries, {:ok, []}, fn entry, {:ok, acc} ->
-      case validate_entry(stage, entry) do
-        {:ok, entry} -> {:cont, {:ok, [entry | acc]}}
-        err -> {:halt, err}
-      end
-    end)
-    |> case do
-      {:ok, entries} -> {:ok, Enum.reverse(entries)}
-      err -> err
-    end
+    map_ok(entries, &validate_entry(stage, &1))
   end
 
   defp validate_entry(stage, {mod, opts}) when is_atom(mod) and is_list(opts) do
     with :ok <- ensure_loaded(stage, mod),
-         :ok <- ensure_behaviour(stage, mod) do
-      case validate_opts(stage, mod, opts) do
-        {:ok, opts} -> {:ok, {mod, opts}}
-        err -> err
-      end
+         :ok <- ensure_behaviour(stage, mod),
+         {:ok, opts} <- validate_opts(stage, mod, opts) do
+      {:ok, {mod, opts}}
     end
   end
 
@@ -155,12 +155,12 @@ defmodule GitHoox.Config do
   end
 
   defp validate_hook_specific(stage, mod, merged) do
+    specific = Keyword.drop(merged, @global_keys)
+
     if function_exported?(mod, :opts_schema, 0) do
-      merged
-      |> Keyword.drop(@global_keys)
-      |> validate_with(mod.opts_schema(), stage, mod)
+      validate_with(specific, mod.opts_schema(), stage, mod)
     else
-      {:ok, Keyword.drop(merged, @global_keys)}
+      {:ok, specific}
     end
   end
 

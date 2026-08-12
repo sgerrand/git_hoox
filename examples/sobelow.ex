@@ -6,6 +6,14 @@ defmodule MyApp.Hooks.Sobelow do
   decide whether the hook is relevant (skipped when nothing under `lib/`
   changed). Configure `:confidence` to relax the severity gate.
 
+  If you do not need the skip-when-nothing-changed behaviour, no custom
+  module is required — `GitHoox.Hooks.Mix` runs any mix task:
+
+      pre_commit: [
+        {GitHoox.Hooks.Mix,
+         task: "sobelow", args: ["--exit", "Low", "--skip"], files: ~w(lib/**/*.ex)}
+      ]
+
   Add Sobelow to your project's deps if you have not already:
 
       {:sobelow, "~> 0.13", only: [:dev, :test], runtime: false}
@@ -31,7 +39,7 @@ defmodule MyApp.Hooks.Sobelow do
     confidence = Keyword.get(opts, :confidence, "Low")
     args = ["sobelow", "--exit", confidence, "--skip"]
 
-    case System.cmd("mix", args, stderr_to_stdout: true) do
+    case GitHoox.Cmd.run("mix", args) do
       {_, 0} -> :ok
       {out, code} -> {:error, {code, out}}
     end

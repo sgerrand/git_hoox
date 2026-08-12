@@ -22,12 +22,18 @@ defmodule GitHoox.Doctor do
   @doc "Run every diagnostic in order."
   @spec run() :: [check()]
   def run do
+    # Both git lookups are stable for the duration of a run, so resolve
+    # them once instead of shelling out five times across the checks.
+    root = Git.toplevel()
+    hooks_dir = Git.hooks_dir()
+    config = config_path(root)
+
     [
-      check_git_repo(),
-      check_hooks_dir(),
-      check_shims(),
-      check_config_present(),
-      check_config_valid()
+      check_git_repo(root),
+      check_hooks_dir(hooks_dir),
+      check_shims(hooks_dir),
+      check_config_present(config),
+      check_config_valid(config)
     ]
   end
 
@@ -41,35 +47,25 @@ defmodule GitHoox.Doctor do
     end
   end
 
-  defp check_git_repo do
-    case Git.toplevel() do
-      {:ok, root} -> ok("git repository", "root: #{root}")
-      _ -> error("git repository", "not inside a git working tree")
-    end
+  defp check_git_repo({:ok, root}), do: ok("git repository", "root: #{root}")
+  defp check_git_repo(_), do: error("git repository", "not inside a git working tree")
+
+  defp check_hooks_dir({:ok, dir}) do
+    if File.dir?(dir),
+      do: ok("hooks directory", dir),
+      else: warn("hooks directory", "#{dir} does not exist yet")
   end
 
-  defp check_hooks_dir do
-    case Git.hooks_dir() do
-      {:ok, dir} ->
-        if File.dir?(dir),
-          do: ok("hooks directory", dir),
-          else: warn("hooks directory", "#{dir} does not exist yet")
-
-      _ ->
-        error("hooks directory", "could not resolve via git rev-parse")
-    end
+  defp check_hooks_dir(_) do
+    error("hooks directory", "could not resolve via git rev-parse")
   end
 
-  defp check_shims do
-    case Git.hooks_dir() do
-      {:ok, dir} ->
-        {managed, foreign, missing, non_exec} = classify_shims(dir)
-        summarize_shims(managed, foreign, missing, non_exec)
-
-      _ ->
-        error("shims", "hooks directory unavailable")
-    end
+  defp check_shims({:ok, dir}) do
+    {managed, foreign, missing, non_exec} = classify_shims(dir)
+    summarize_shims(managed, foreign, missing, non_exec)
   end
+
+  defp check_shims(_), do: error("shims", "hooks directory unavailable")
 
   defp classify_shims(dir) do
     Enum.reduce(Installer.hook_names(), {[], [], [], []}, fn hook, acc ->
@@ -123,50 +119,33 @@ defmodule GitHoox.Doctor do
     end
   end
 
-  defp check_config_present do
-    case config_path() do
-      {:ok, path} ->
-        if File.exists?(path),
-          do: ok("config file", path),
-          else:
-            warn(
-              "config file",
-              "#{path} missing (run mix git_hoox.install --scaffold to generate)"
-            )
-
-      _ ->
-        warn("config file", "could not locate repo root")
-    end
+  defp check_config_present({:ok, path}) do
+    if File.exists?(path),
+      do: ok("config file", path),
+      else: warn("config file", "#{path} missing (run mix git_hoox.install --scaffold to generate)")
   end
 
-  defp check_config_valid do
-    case config_path() do
-      {:ok, path} -> check_config_at(path)
-      _ -> warn("config validates", "skipped — no repo root")
-    end
-  end
+  defp check_config_present(_), do: warn("config file", "could not locate repo root")
 
-  defp check_config_at(path) do
+  defp check_config_valid({:ok, path}) do
     if File.exists?(path) do
-      load_and_summarize(path)
+      case Config.load(path) do
+        {:ok, config} ->
+          stages = config.hooks |> Keyword.keys() |> Enum.join(", ")
+          ok("config validates", "stages: #{stages}")
+
+        {:error, reason} ->
+          error("config validates", ConfigError.format(reason))
+      end
     else
       warn("config validates", "skipped — no config file")
     end
   end
 
-  defp load_and_summarize(path) do
-    case Config.load(path) do
-      {:ok, config} ->
-        stages = config.hooks |> Keyword.keys() |> Enum.join(", ")
-        ok("config validates", "stages: #{stages}")
+  defp check_config_valid(_), do: warn("config validates", "skipped — no repo root")
 
-      {:error, reason} ->
-        error("config validates", ConfigError.format(reason))
-    end
-  end
-
-  defp config_path do
-    with {:ok, root} <- Git.toplevel() do
+  defp config_path(toplevel) do
+    with {:ok, root} <- toplevel do
       {:ok, Path.join(root, Installer.config_filename())}
     end
   end

@@ -16,13 +16,16 @@ defmodule GitHoox.Hook do
         @impl true
         def run([], _opts), do: :ok
         def run(files, _opts) do
-          case System.cmd("mix", ["sobelow", "--exit" | files], stderr_to_stdout: true) do
+          case GitHoox.Cmd.run("mix", ["sobelow", "--exit" | files]) do
             {_, 0} -> :ok
             {out, code} -> {:error, {code, out}}
           end
         end
       end
 
+  `GitHoox.Cmd.run/3` mirrors `System.cmd/3`'s `{output, exit_status}` return
+  shape, and additionally streams the command's output live and shields the
+  child from stdin.
   """
 
   @typedoc "Files matched by hook's `:files` glob, after staging filter."

@@ -56,7 +56,6 @@ defmodule GitHoox.Hooks.Mix do
 
   @behaviour GitHoox.Hook
 
-  alias GitHoox.Cmd
   alias GitHoox.Hooks.Helpers
 
   @opts_schema [
@@ -65,11 +64,7 @@ defmodule GitHoox.Hooks.Mix do
       required: true,
       doc: "Mix task name (e.g. \"docs\", \"compile\")."
     ],
-    args: [
-      type: {:list, :string},
-      default: [],
-      doc: "Extra CLI args appended after the task name."
-    ],
+    args: Helpers.args_schema("Extra CLI args appended after the task name."),
     append_files: [
       type: :boolean,
       default: false,
@@ -100,12 +95,8 @@ defmodule GitHoox.Hooks.Mix do
 
     cond do
       append? and files == [] -> :ok
-      append? -> exec([task | args] ++ ["--" | files], opts)
-      true -> exec([task | args], opts)
+      append? -> Helpers.mix([task | args] ++ ["--" | files], opts)
+      true -> Helpers.mix([task | args], opts)
     end
-  end
-
-  defp exec(args, opts) do
-    Cmd.run("mix", args, env: Helpers.env_opt(opts)) |> Helpers.to_result()
   end
 end

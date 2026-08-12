@@ -44,7 +44,6 @@ defmodule GitHoox.Hooks.Shell do
 
   @behaviour GitHoox.Hook
 
-  alias GitHoox.Cmd
   alias GitHoox.Git
   alias GitHoox.Hooks.Helpers
 
@@ -111,7 +110,7 @@ defmodule GitHoox.Hooks.Shell do
   defp exec(cmd, opts) do
     shell = Keyword.get(opts, :shell, "sh")
 
-    Cmd.run(shell, ["-c", cmd], env: Helpers.env_opt(opts)) |> Helpers.to_result()
+    shell |> Helpers.cmd(["-c", cmd], opts) |> Helpers.to_result()
   end
 
   defp expand(template, files) do
@@ -119,8 +118,8 @@ defmodule GitHoox.Hooks.Shell do
       [
         {"{files}", fn -> {:ok, files} end},
         {"{push_files}", fn -> {:ok, files} end},
-        {"{staged_files}", &staged_resolver/0},
-        {"{all_files}", &all_resolver/0}
+        {"{staged_files}", &Git.staged_files/0},
+        {"{all_files}", &Git.all_files/0}
       ],
       {:ok, template},
       fn {token, resolver}, {:ok, acc} ->
@@ -143,9 +142,6 @@ defmodule GitHoox.Hooks.Shell do
       {:ok, template}
     end
   end
-
-  defp staged_resolver, do: Git.staged_files()
-  defp all_resolver, do: Git.all_files()
 
   defp uses_token?(template, token), do: String.contains?(template, token)
 
