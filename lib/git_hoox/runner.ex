@@ -125,8 +125,12 @@ defmodule GitHoox.Runner do
     |> collect(config.fail_fast)
   end
 
-  # Both dispatch paths produce a lazy stream of outcomes; consuming it
-  # lazily means a fail_fast halt stops the remaining hooks from running.
+  # Both dispatch paths produce a lazy stream of outcomes, so a fail_fast
+  # halt stops further hooks being dispatched. What that buys differs by
+  # path: serially, no later hook is invoked at all; in parallel, up to
+  # max_concurrency hooks are already in flight and run to completion —
+  # only their outcomes are dropped. Fail-fast is "stop starting work",
+  # not "cancel running work".
   defp collect(outcomes, fail_fast?) do
     outcomes
     |> Enum.reduce_while([], fn outcome, acc ->

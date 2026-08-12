@@ -147,24 +147,31 @@ defmodule GitHoox.Installer do
 
   defp classify(path, force?) do
     case File.read(path) do
-      {:error, _} ->
+      {:error, :enoent} ->
         :write
 
+      # Something is there but cannot be inspected — a directory, or a file
+      # this user cannot read. Treat it exactly like a foreign hook rather
+      # than an empty slot, and report the underlying IO error.
+      {:error, reason} ->
+        occupied(path, force?, "Hook exists but could not be read (#{error_text(reason)}).")
+
       {:ok, content} ->
-        cond do
-          String.contains?(content, @marker) ->
-            :overwrite_managed
-
-          force? ->
-            :overwrite_with_backup
-
-          true ->
-            {:error,
-             {:exists, path,
-              "Hook exists and is not managed by git_hoox. Re-run with --force to backup and overwrite."}}
+        if String.contains?(content, @marker) do
+          :overwrite_managed
+        else
+          occupied(path, force?, "Hook exists and is not managed by git_hoox.")
         end
     end
   end
+
+  defp occupied(_path, true, _detail), do: :overwrite_with_backup
+
+  defp occupied(path, false, detail) do
+    {:error, {:exists, path, detail <> " Re-run with --force to backup and overwrite."}}
+  end
+
+  defp error_text(reason), do: reason |> :file.format_error() |> List.to_string()
 
   defp execute(plan, true, _auto?), do: {:ok, plan}
 

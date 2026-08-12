@@ -64,6 +64,23 @@ defmodule GitHoox.InstallerTest do
     assert File.read!(path) == "#!/bin/sh\necho user hook\n"
   end
 
+  # An existing path that cannot be read must not be mistaken for a free
+  # slot. A directory is used here because it fails File.read/1 for every
+  # user, including root, unlike a chmod 000 file.
+  test "refuses an existing but unreadable hook without --force", %{repo: dir} do
+    path = Path.join(dir, ".git/hooks/pre-commit")
+    File.mkdir_p!(path)
+
+    in_repo(dir, fn ->
+      assert {:error, {:exists, returned_path, msg}} = Installer.install()
+      assert String.ends_with?(returned_path, ".git/hooks/pre-commit")
+      assert msg =~ "could not be read"
+      assert msg =~ "--force"
+    end)
+
+    assert File.dir?(path), "unreadable hook should be left untouched"
+  end
+
   test "--force backs up existing user hook", %{repo: dir} do
     path = Path.join(dir, ".git/hooks/pre-commit")
     File.mkdir_p!(Path.dirname(path))
