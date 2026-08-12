@@ -56,6 +56,34 @@ defmodule GitHoox.RunnerParallelIoTest do
            "expected exactly one prefix transition (one contiguous block per hook), got #{transitions}.\n#{Enum.join(lines, "\n")}"
   end
 
+  test "fail_fast still prints output from a hook it cancels", %{repo: dir} do
+    write(dir, "lib/foo.ex", "x\n")
+    stage(dir, ["lib/foo.ex"])
+
+    # The slow hook prints immediately, then sleeps past the point where
+    # the failing hook halts the stream and its task is terminated. Its
+    # capture buffer belongs to the runner, not the task, so whatever it
+    # managed to print before being cancelled still reaches the terminal.
+    write_config(dir, """
+    %{
+      hooks: [pre_commit: [
+        {GitHoox.Hooks.Shell, run: "echo SLOW_START; sleep 5; echo SLOW_DONE"},
+        {GitHoox.Hooks.Shell, run: "sleep 1; exit 1"}
+      ]],
+      parallel: true,
+      fail_fast: true
+    }
+    """)
+
+    out =
+      capture_io(fn ->
+        in_repo(dir, fn -> assert {:error, _} = Runner.run(:pre_commit) end)
+      end)
+
+    assert out =~ "SLOW_START", "cancelled hook's output was discarded"
+    refute out =~ "SLOW_DONE", "hook should not have run to completion"
+  end
+
   test "serial mode still streams chunk by chunk", %{repo: dir} do
     write(dir, "lib/foo.ex", "x\n")
     stage(dir, ["lib/foo.ex"])
