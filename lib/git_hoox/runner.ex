@@ -126,11 +126,14 @@ defmodule GitHoox.Runner do
   end
 
   # Both dispatch paths produce a lazy stream of outcomes, so a fail_fast
-  # halt stops further hooks being dispatched. What that buys differs by
-  # path: serially, no later hook is invoked at all; in parallel, up to
-  # max_concurrency hooks are already in flight and run to completion —
-  # only their outcomes are dropped. Fail-fast is "stop starting work",
-  # not "cancel running work".
+  # halt stops later hooks being dispatched. What it does to work already
+  # underway differs: serially there is none, but in parallel the halt
+  # tears down the async_stream, which terminates the hooks still in
+  # flight. Those tasks do not trap exits, so run_with_captured_io/3's
+  # `after` never runs — a cancelled hook prints nothing at all, and can
+  # leave half-finished side effects behind (a formatter mid-write).
+  # Ordinary hook timeouts are unaffected; they are enforced per hook by
+  # invoke_with_timeout!/4, well inside the task.
   defp collect(outcomes, fail_fast?) do
     outcomes
     |> Enum.reduce_while([], fn outcome, acc ->
