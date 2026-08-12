@@ -362,12 +362,41 @@ readable — no chunk-level interleaving — but you pay for it in latency:
 nothing appears on the terminal until the fastest hook completes. If
 live progress matters more than tidy output, stay on serial dispatch.
 
+### Status Lines
+
+On top of the hooks' own output, GitHoox prints a coloured status line
+for each hook and a summary line for the stage:
+
+```
+→ pre-commit · 3 hooks · 5 files
+  ▸ Format
+  ✓ Format · 38ms
+  ▸ Credo
+  ✗ Credo · exit 1 · 1.4s
+✗ pre-commit · 1/3 failed · 1.5s
+```
+
+A green `✓` means the hook passed, a red `✗` means it failed, and each
+line shows how long the hook took. Stages with no hooks print nothing.
+
+This is on by default. Turn it off with:
+
+```elixir
+config :git_hoox, reporter: false
+```
+
+Colour turns on when the output is a terminal and off when it is piped
+to a file. Override that with `GIT_HOOX_COLOR=always` or
+`GIT_HOOX_COLOR=never`. `NO_COLOR` turns colour off; `CLICOLOR_FORCE`
+and `FORCE_COLOR` turn it on. `GIT_HOOX_COLOR` wins over all of them.
+
 ## Observability
 
-GitHoox emits `:telemetry` events around every stage and every hook, with no
-default handler attached. Attach the reference `Logger`-backed handler with
-`GitHoox.Logger.attach/0`, or roll your own — the event shape is documented
-on `GitHoox.Telemetry`.
+GitHoox emits `:telemetry` events around every stage and every hook. The
+coloured status lines above come from `GitHoox.Reporter`, one reference
+handler. `GitHoox.Logger` is another, for `Logger`-backed output. Attach
+it with `GitHoox.Logger.attach/0`, or roll your own — the event shape is
+documented on `GitHoox.Telemetry`.
 
 ```elixir
 # Reference Logger output.

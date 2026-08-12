@@ -12,4 +12,5 @@ System.get_env()
 |> Enum.each(&System.delete_env/1)
 
 Application.put_env(:git_hoox, :stream_output, false)
+Application.put_env(:git_hoox, :reporter, false)
 ExUnit.start(exclude: [:slow, :network])
