@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.1](https://github.com/sgerrand/git_hoox/compare/v0.5.0...v0.5.1) (2026-08-15)
+
+
+### Bug Fixes
+
+* **runner:** keep output from hooks cancelled by fail_fast ([#25](https://github.com/sgerrand/git_hoox/issues/25)) ([4ed8012](https://github.com/sgerrand/git_hoox/commit/4ed8012794d8f7c99ee8e307e7fb4be2582285c3))
+
+
+### Refactor
+
+* simplify hooks, config, installer and doctor ([#23](https://github.com/sgerrand/git_hoox/issues/23)) ([f202a11](https://github.com/sgerrand/git_hoox/commit/f202a111a9bc78ec089f9b4e09ea3bd4e72c80eb))
+
 ## [0.5.0](https://github.com/sgerrand/git_hoox/compare/v0.4.2...v0.5.0) (2026-08-12)
 
 
