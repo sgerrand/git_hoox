@@ -114,24 +114,62 @@ defmodule GitHoox.Runner do
   end
 
   defp run_parallel(entries, files, config, stage) do
-    entries
-    |> Task.async_stream(
-      fn entry -> run_with_captured_io(entry, files, stage) end,
-      max_concurrency: System.schedulers_online(),
-      ordered: false,
-      timeout: :infinity
-    )
-    |> Stream.map(fn {:ok, outcome} -> outcome end)
-    |> collect(config.fail_fast)
+    captures = open_captures(entries)
+
+    try do
+      entries
+      |> Enum.with_index()
+      |> Task.async_stream(
+        fn {entry, index} ->
+          {index, run_with_captured_io(entry, files, stage, captures[index])}
+        end,
+        max_concurrency: System.schedulers_online(),
+        ordered: false,
+        timeout: :infinity
+      )
+      |> Stream.map(fn {:ok, {index, outcome}} ->
+        flush_capture(captures[index])
+        outcome
+      end)
+      |> collect(config.fail_fast)
+    after
+      # A fail_fast halt terminates the hooks still in flight, so they
+      # never reach the flush above. Their buffers outlive them because
+      # the devices belong to this process rather than to the tasks —
+      # drain what they printed before they were cancelled, in
+      # configuration order.
+      captures
+      |> Enum.sort()
+      |> Enum.each(fn {_index, device} ->
+        flush_capture(device)
+        StringIO.close(device)
+      end)
+    end
+  end
+
+  defp open_captures(entries) do
+    Map.new(0..(length(entries) - 1), fn index ->
+      {:ok, device} = StringIO.open("")
+      {index, device}
+    end)
+  end
+
+  # StringIO.flush/1 empties the buffer as it reads, so flushing a device
+  # a second time is a no-op rather than a duplicate print.
+  defp flush_capture(device) do
+    case StringIO.flush(device) do
+      "" -> :ok
+      text -> IO.write(text)
+    end
   end
 
   # Both dispatch paths produce a lazy stream of outcomes, so a fail_fast
   # halt stops later hooks being dispatched. What it does to work already
   # underway differs: serially there is none, but in parallel the halt
   # tears down the async_stream, which terminates the hooks still in
-  # flight. Those tasks do not trap exits, so run_with_captured_io/3's
-  # `after` never runs — a cancelled hook prints nothing at all, and can
-  # leave half-finished side effects behind (a formatter mid-write).
+  # flight. Cancellation is abrupt — those tasks do not trap exits, so a
+  # hook can be interrupted mid-write and its outcome is discarded — but
+  # whatever it printed first is still flushed by run_parallel/4.
   # Ordinary hook timeouts are unaffected; they are enforced per hook by
   # invoke_with_timeout!/4, well inside the task.
   defp collect(outcomes, fail_fast?) do
@@ -149,23 +187,21 @@ defmodule GitHoox.Runner do
   end
 
   # Redirect the task's group leader to an in-memory StringIO for the
-  # duration of the hook, then flush the captured output in one atomic
-  # IO.write/1 after the hook finishes. Without this, parallel hooks
-  # interleave each other's stdout chunk-by-chunk on the real device.
-  defp run_with_captured_io(entry, files, stage) do
+  # duration of the hook. Without this, parallel hooks interleave each
+  # other's stdout chunk-by-chunk on the real device.
+  #
+  # The device is opened by run_parallel/4 and merely borrowed here, so
+  # that a task killed by a fail_fast halt cannot take the buffer with
+  # it. Flushing is the caller's job for the same reason: a cancelled
+  # task never runs its own `after`.
+  defp run_with_captured_io(entry, files, stage, capture) do
     parent_gl = Process.group_leader()
-    {:ok, capture} = StringIO.open("")
     Process.group_leader(self(), capture)
 
     try do
-      outcome = {elem(entry, 0), run_one(entry, files, stage)}
-      {_, captured} = StringIO.contents(capture)
-      Process.group_leader(self(), parent_gl)
-      if captured != "", do: IO.write(captured)
-      outcome
+      {elem(entry, 0), run_one(entry, files, stage)}
     after
       Process.group_leader(self(), parent_gl)
-      StringIO.close(capture)
     end
   end
 

@@ -98,13 +98,23 @@ Key modules:
 
 `Runner.run_parallel/4` wraps each Task in a `StringIO`-backed group
 leader. Hooks still call `IO.write/2`, but the writes land in the
-per-task buffer; once the task finishes, the buffer is flushed to the
-real group leader in one atomic `IO.write/1`. The mechanism keeps
-parallel output readable (no chunk-level interleaving across hooks) at
-the cost of "live" streaming — nothing prints until the first hook
-exits. Serial dispatch is the path for users who care about live
-progress over tidy output. `ordered: false` on the `Task.async_stream`
-call surfaces fastest-hook-first.
+per-task buffer, which is flushed to the real group leader in one
+atomic `IO.write/1` when the task's outcome arrives. The mechanism
+keeps parallel output readable (no chunk-level interleaving across
+hooks) at the cost of "live" streaming — nothing prints until the
+first hook exits. Serial dispatch is the path for users who care about
+live progress over tidy output. `ordered: false` on the
+`Task.async_stream` call surfaces fastest-hook-first.
+
+The buffers are opened by `run_parallel/4` and only borrowed by the
+tasks, and the runner — not the task — does the flushing. Both details
+exist for `fail_fast`: halting the stream terminates the hooks still in
+flight, and those tasks do not trap exits, so a task-owned device would
+die with its task and a task-side flush would never run. Keeping
+ownership in the runner means a cancelled hook still prints whatever it
+managed to write. An `after` block drains and closes every device on
+the way out, and `StringIO.flush/1` empties as it reads, so the
+already-flushed ones are no-ops rather than duplicate prints.
 
 `examples/` holds copy-paste custom hooks (Sobelow, coverage, JIRA ticket).
 They are not packaged with the library — `package.files` in `mix.exs` does
