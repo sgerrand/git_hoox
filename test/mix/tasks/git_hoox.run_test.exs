@@ -134,9 +134,9 @@ defmodule Mix.Tasks.GitHoox.RunTest do
     %{hooks: [pre_push: []]}
     """)
 
-    # Malformed line is harmless — Git.push_files just yields []. The point is
+    # A line without four fields is skipped — Git.push_files just yields []. The point is
     # to exercise the binary-data branch of read_stdin/1.
-    capture_io("refs/heads/x sha refs/heads/x sha\n", fn ->
+    capture_io("refs/heads/x sha refs/heads/x\n", fn ->
       in_repo(dir, fn ->
         assert :ok = RunTask.run(["pre-push"])
       end)

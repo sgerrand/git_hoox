@@ -39,6 +39,9 @@ defmodule GitHoox.Runner do
       {:error, {:missing_args, _} = reason} ->
         {:error, [{:stage, {:error, reason}}]}
 
+      {:error, {code, _out} = reason} when is_integer(code) ->
+        {:error, [{:git, {:error, reason}}]}
+
       {:error, reason} ->
         {:error, [{:config, {:error, reason}}]}
     end

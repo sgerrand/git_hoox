@@ -83,6 +83,10 @@ defmodule Mix.Tasks.GitHoox.Run do
     IO.puts(:stderr, ConfigError.format(reason))
   end
 
+  defp print_failure({:git, {:error, {code, out}}}) do
+    IO.puts(:stderr, "git_hoox: git failed (exit #{code}) while resolving files:\n#{out}")
+  end
+
   defp print_failure({:stage, {:error, {:missing_args, stage}}}) do
     IO.puts(
       :stderr,

@@ -51,7 +51,7 @@ defmodule GitHoox.Hooks.Format do
       # --check-formatted never writes, so there is nothing to re-stage and
       # no reason to pay for a `git diff` to find out.
       {_, 0} when check? -> :ok
-      {_, 0} -> {:ok, GitHoox.Git.changed_in_worktree(files)}
+      {_, 0} -> GitHoox.Git.changed_in_worktree(files)
       tuple -> Helpers.to_result(tuple)
     end
   end
