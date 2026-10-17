@@ -35,9 +35,9 @@ defmodule GitHoox.GitTest do
 
     File.chmod!(shim, 0o755)
 
-    old_path = System.get_env("PATH")
-    System.put_env("PATH", bin <> ":" <> old_path)
+    old_path = System.get_env("PATH", "")
     on_exit(fn -> System.put_env("PATH", old_path) end)
+    System.put_env("PATH", bin <> ":" <> old_path)
 
     in_repo(dir, fn ->
       assert {:ok, ["lib/foo.ex"]} = Git.staged_files()
