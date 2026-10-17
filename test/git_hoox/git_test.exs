@@ -5,6 +5,10 @@ defmodule GitHoox.GitTest do
 
   defp in_repo(dir, fun), do: File.cd!(dir, fun)
 
+  # Same single-quote escaping as GitHoox.Hooks.Shell, so a git binary under
+  # a path containing a space survives interpolation into a shell script.
+  defp sh_quote(path), do: "'" <> String.replace(path, "'", "'\\''") <> "'"
+
   test "staged_files lists --cached only", %{repo: dir} do
     write(dir, "lib/foo.ex", "foo\n")
     write(dir, "lib/bar.ex", "bar\n")
@@ -19,11 +23,16 @@ defmodule GitHoox.GitTest do
     write(dir, "lib/foo.ex", "foo\n")
     stage(dir, ["lib/foo.ex"])
 
-    real = System.find_executable("git")
+    real = System.find_executable("git") || flunk("git not found on PATH")
     bin = Path.join(dir, ".fake_bin")
     File.mkdir_p!(bin)
     shim = Path.join(bin, "git")
-    File.write!(shim, "#!/bin/sh\necho 'warning: noisy' >&2\nexec #{real} \"$@\"\n")
+
+    File.write!(
+      shim,
+      "#!/bin/sh\necho 'warning: noisy' >&2\nexec #{sh_quote(real)} \"$@\"\n"
+    )
+
     File.chmod!(shim, 0o755)
 
     old_path = System.get_env("PATH")
