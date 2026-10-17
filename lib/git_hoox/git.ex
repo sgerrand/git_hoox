@@ -128,8 +128,11 @@ defmodule GitHoox.Git do
   # Deleting a remote ref pushes no content — nothing to scan.
   defp push_files_for(:delete, _local, _remote), do: []
 
+  # A new remote ref has no base to diff against, so take every commit the
+  # push introduces: those reachable from `local` that no remote-tracking
+  # ref already has. Showing only `local` would skip all but the tip commit.
   defp push_files_for(:create, local, _remote) do
-    run_split(["show", "--name-only", "--pretty=format:", "-z", local])
+    run_split(["log", "--name-only", "--pretty=format:", "-z", local, "--not", "--remotes"])
   end
 
   defp push_files_for(:update, local, remote) do

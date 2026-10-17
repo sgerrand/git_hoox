@@ -95,6 +95,32 @@ defmodule GitHoox.GitStagesTest do
       end)
     end
 
+    test "new branch covers every commit not already on a remote", %{repo: dir} do
+      for name <- ~w(a b c) do
+        write(dir, "lib/#{name}.ex", "#{name}\n")
+        stage(dir, ["lib/#{name}.ex"])
+        commit(dir, name)
+      end
+
+      tip = String.trim(sh!(dir, ["rev-parse", "HEAD"]))
+      zero = String.duplicate("0", String.length(tip))
+      line = "refs/heads/feat #{tip} refs/heads/feat #{zero}\n"
+
+      in_repo(dir, fn ->
+        assert {:ok, files} = Git.push_files(line)
+        assert Enum.sort(files) == ["README.md", "lib/a.ex", "lib/b.ex", "lib/c.ex"]
+      end)
+
+      # Once `a` is on a remote, only the commits after it are pushed.
+      first = String.trim(sh!(dir, ["rev-parse", "HEAD~2"]))
+      sh!(dir, ["update-ref", "refs/remotes/origin/main", first])
+
+      in_repo(dir, fn ->
+        assert {:ok, files} = Git.push_files(line)
+        assert Enum.sort(files) == ["lib/b.ex", "lib/c.ex"]
+      end)
+    end
+
     test "all-zero local sha (branch delete) yields empty list without running git", %{
       repo: dir
     } do
