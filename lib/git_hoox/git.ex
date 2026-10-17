@@ -4,8 +4,9 @@ defmodule GitHoox.Git do
 
   All functions assume the current working directory is inside a git
   worktree. Errors from the underlying `git` invocation surface as
-  `{:error, {exit_code, stdout}}`; git's own stderr is not captured, so it
-  reaches the terminal directly and never contaminates parsed output.
+  `{:error, {exit_code, message}}`, where `message` is git's output on
+  failure (including its `fatal:` text from stderr). On success stderr is
+  discarded, so a warning never contaminates parsed output.
   """
 
   @typedoc "git --diff-filter status letters (e.g. \"ACMR\")."
@@ -145,13 +146,33 @@ defmodule GitHoox.Git do
 
   defp zero_sha?(sha), do: sha != "" and String.replace(sha, "0", "") == ""
 
-  # stderr is left on the inherited stream rather than merged into the
-  # captured output: this output is parsed (file lists, paths), and a git
-  # warning such as a CRLF notice would otherwise be read as a filename.
+  # This output is parsed (file lists, paths), so stderr must not be merged
+  # into it: a git warning such as a CRLF notice would be read as a
+  # filename. System.cmd/3 cannot separate the streams, so stderr is
+  # redirected to a temp file by a tiny sh wrapper (`$0` is the file, the
+  # remaining args are git's). It is read back only on failure, where it
+  # carries the reason; on success it is dropped.
   defp cmd(args) do
-    case System.cmd("git", args) do
-      {out, 0} -> {:ok, out}
-      {out, code} -> {:error, {code, out}}
+    err_file =
+      Path.join(
+        System.tmp_dir!(),
+        "git_hoox_stderr_#{System.pid()}_#{System.unique_integer([:positive])}"
+      )
+
+    try do
+      case System.cmd("sh", ["-c", ~s|exec git "$@" 2>"$0"|, err_file | args]) do
+        {out, 0} -> {:ok, out}
+        {out, code} -> {:error, {code, out <> read_stderr(err_file)}}
+      end
+    after
+      File.rm(err_file)
+    end
+  end
+
+  defp read_stderr(path) do
+    case File.read(path) do
+      {:ok, text} -> text
+      {:error, _} -> ""
     end
   end
 
