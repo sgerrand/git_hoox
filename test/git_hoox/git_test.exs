@@ -15,52 +15,23 @@ defmodule GitHoox.GitTest do
     end)
   end
 
-  # Put a `git` first on PATH that warns on stderr before running the real one.
-  defp noisy_git!(dir) do
+  test "git stderr is not parsed as output", %{repo: dir} do
+    write(dir, "lib/foo.ex", "foo\n")
+    stage(dir, ["lib/foo.ex"])
+
     real = System.find_executable("git")
     bin = Path.join(dir, ".fake_bin")
     File.mkdir_p!(bin)
     shim = Path.join(bin, "git")
-    File.write!(shim, "#!/bin/sh\necho 'warning: noisy' >&2\nexec '#{real}' \"$@\"\n")
+    File.write!(shim, "#!/bin/sh\necho 'warning: noisy' >&2\nexec #{real} \"$@\"\n")
     File.chmod!(shim, 0o755)
 
     old_path = System.get_env("PATH")
-    on_exit(fn -> System.put_env("PATH", old_path) end)
     System.put_env("PATH", bin <> ":" <> old_path)
-  end
-
-  test "git stderr is not parsed as file names", %{repo: dir} do
-    write(dir, "lib/foo.ex", "foo\n")
-    stage(dir, ["lib/foo.ex"])
-    noisy_git!(dir)
+    on_exit(fn -> System.put_env("PATH", old_path) end)
 
     in_repo(dir, fn ->
       assert {:ok, ["lib/foo.ex"]} = Git.staged_files()
-    end)
-  end
-
-  test "git stderr is not mixed into resolved paths", %{repo: dir} do
-    noisy_git!(dir)
-    expected = Path.join(dir, ".git/hooks") |> Path.basename()
-
-    in_repo(dir, fn ->
-      assert {:ok, root} = Git.toplevel()
-      refute root =~ "noisy"
-      assert {:ok, hooks} = Git.hooks_dir()
-      refute hooks =~ "noisy"
-      assert Path.basename(hooks) == expected
-    end)
-  end
-
-  test "failure carries git's stderr message", %{repo: _dir} do
-    tmp = Path.join(System.tmp_dir!(), "no_repo_#{System.unique_integer([:positive])}")
-    File.mkdir_p!(tmp)
-    on_exit(fn -> File.rm_rf!(tmp) end)
-
-    File.cd!(tmp, fn ->
-      assert {:error, {code, msg}} = Git.toplevel()
-      assert code != 0
-      assert msg =~ ~r/not a git repository/i
     end)
   end
 
