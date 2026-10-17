@@ -10,7 +10,7 @@ GitHoox is a pure-Elixir git hooks runner. It writes shell shims into
 configured hook. Design goal: lefthook parity (no implicit stashing, opt-in
 re-staging) without requiring a Node or Python runtime.
 
-Elixir `~> 1.17` (CI tests 1.17, 1.18, 1.19 on OTP 26/27).
+Elixir `~> 1.17` (CI tests 1.17 on OTP 26, 1.18 on 27, 1.19 on 28, 1.20 on 29).
 
 ## Commands
 
