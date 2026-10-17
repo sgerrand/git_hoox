@@ -15,6 +15,26 @@ defmodule GitHoox.GitTest do
     end)
   end
 
+  test "git stderr is not parsed as output", %{repo: dir} do
+    write(dir, "lib/foo.ex", "foo\n")
+    stage(dir, ["lib/foo.ex"])
+
+    real = System.find_executable("git")
+    bin = Path.join(dir, ".fake_bin")
+    File.mkdir_p!(bin)
+    shim = Path.join(bin, "git")
+    File.write!(shim, "#!/bin/sh\necho 'warning: noisy' >&2\nexec #{real} \"$@\"\n")
+    File.chmod!(shim, 0o755)
+
+    old_path = System.get_env("PATH")
+    System.put_env("PATH", bin <> ":" <> old_path)
+    on_exit(fn -> System.put_env("PATH", old_path) end)
+
+    in_repo(dir, fn ->
+      assert {:ok, ["lib/foo.ex"]} = Git.staged_files()
+    end)
+  end
+
   test "staged_files empty when nothing staged", %{repo: dir} do
     in_repo(dir, fn ->
       assert {:ok, []} = Git.staged_files()

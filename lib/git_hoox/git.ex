@@ -4,7 +4,8 @@ defmodule GitHoox.Git do
 
   All functions assume the current working directory is inside a git
   worktree. Errors from the underlying `git` invocation surface as
-  `{:error, {exit_code, stderr}}`.
+  `{:error, {exit_code, stdout}}`; git's own stderr is not captured, so it
+  reaches the terminal directly and never contaminates parsed output.
   """
 
   @typedoc "git --diff-filter status letters (e.g. \"ACMR\")."
@@ -144,8 +145,11 @@ defmodule GitHoox.Git do
 
   defp zero_sha?(sha), do: sha != "" and String.replace(sha, "0", "") == ""
 
+  # stderr is left on the inherited stream rather than merged into the
+  # captured output: this output is parsed (file lists, paths), and a git
+  # warning such as a CRLF notice would otherwise be read as a filename.
   defp cmd(args) do
-    case System.cmd("git", args, stderr_to_stdout: true) do
+    case System.cmd("git", args) do
       {out, 0} -> {:ok, out}
       {out, code} -> {:error, {code, out}}
     end
