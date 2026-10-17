@@ -118,6 +118,23 @@ defmodule GitHoox.GitStagesTest do
       end)
     end
 
+    test "remote sha absent from the object store falls back to the tip listing", %{repo: dir} do
+      write(dir, "lib/a.ex", "a\n")
+      stage(dir, ["lib/a.ex"])
+      commit(dir, "a")
+      local = String.trim(sh!(dir, ["rev-parse", "HEAD"]))
+
+      # Shaped like a real sha, but no such object here: what git hands
+      # the hook whenever the remote branch moved on since our last fetch.
+      unfetched = String.duplicate("b", 40)
+      line = "refs/heads/main #{local} refs/heads/main #{unfetched}\n"
+
+      in_repo(dir, fn ->
+        assert {:ok, files} = Git.push_files(line)
+        assert "lib/a.ex" in files
+      end)
+    end
+
     test "a failing ref aborts the whole parse", %{repo: dir} do
       write(dir, "lib/a.ex", "a\n")
       stage(dir, ["lib/a.ex"])

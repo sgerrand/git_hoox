@@ -134,9 +134,22 @@ defmodule GitHoox.Git do
     run_split(["show", "--name-only", "--pretty=format:", "-z", local])
   end
 
+  # The remote sha comes from the remote's advertised refs, not from our
+  # object store, so it is routinely an object we do not hold: a branch
+  # that moved upstream since the last fetch, a shallow or partial clone,
+  # or a push to an unrelated fork all hand us a sha `git diff` cannot
+  # resolve. Scan the tip like a new ref in that case rather than failing
+  # the push — git's own non-fast-forward error is the one the user needs
+  # to see, and aborting here would hide it.
   defp push_files_for(:update, local, remote) do
-    run_split(["diff", "--name-only", "-z", "#{remote}..#{local}"])
+    if have_object?(remote) do
+      run_split(["diff", "--name-only", "-z", "#{remote}..#{local}"])
+    else
+      push_files_for(:create, local, remote)
+    end
   end
+
+  defp have_object?(sha), do: match?({:ok, _}, cmd(["cat-file", "-e", sha]))
 
   defp run_split(args), do: args |> cmd() |> parse_z()
 
