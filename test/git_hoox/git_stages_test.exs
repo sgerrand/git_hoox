@@ -81,7 +81,7 @@ defmodule GitHoox.GitStagesTest do
       end)
     end
 
-    test "all-zero remote sha takes the show-new-branch branch", %{repo: dir} do
+    test "all-zero remote sha takes the new-branch branch", %{repo: dir} do
       write(dir, "lib/x.ex", "x\n")
       stage(dir, ["lib/x.ex"])
       commit(dir, "x")
@@ -132,6 +132,70 @@ defmodule GitHoox.GitStagesTest do
       in_repo(dir, fn ->
         assert {:ok, files} = Git.push_files(line)
         assert "lib/a.ex" in files
+      end)
+    end
+
+    test "a new branch lists files from every pushed commit, not just the tip", %{repo: dir} do
+      for name <- ~w(one two three) do
+        write(dir, "lib/#{name}.ex", "x\n")
+        stage(dir, ["lib/#{name}.ex"])
+        commit(dir, "add #{name}")
+      end
+
+      sha = String.trim(sh!(dir, ["rev-parse", "HEAD"]))
+      zero = String.duplicate("0", String.length(sha))
+      line = "refs/heads/main #{sha} refs/heads/main #{zero}\n"
+
+      in_repo(dir, fn ->
+        assert {:ok, files} = Git.push_files(line)
+        assert "lib/one.ex" in files
+        assert "lib/two.ex" in files
+        assert "lib/three.ex" in files
+      end)
+    end
+
+    test "a merge tip lists the files merged in, not an empty set", %{repo: dir} do
+      sh!(dir, ["checkout", "-q", "-b", "feature"])
+      write(dir, "lib/feature.ex", "f\n")
+      stage(dir, ["lib/feature.ex"])
+      commit(dir, "feature")
+      sh!(dir, ["checkout", "-q", "main"])
+      write(dir, "lib/mainline.ex", "m\n")
+      stage(dir, ["lib/mainline.ex"])
+      commit(dir, "mainline")
+      sh!(dir, ["merge", "-q", "--no-ff", "-m", "merge feature", "feature"])
+
+      sha = String.trim(sh!(dir, ["rev-parse", "HEAD"]))
+      zero = String.duplicate("0", String.length(sha))
+      line = "refs/heads/main #{sha} refs/heads/main #{zero}\n"
+
+      # A clean merge's condensed combined diff is empty, so listing the
+      # tip alone would leave the entire side branch unscanned.
+      in_repo(dir, fn ->
+        assert {:ok, files} = Git.push_files(line)
+        assert "lib/feature.ex" in files
+        assert "lib/mainline.ex" in files
+      end)
+    end
+
+    test "commits already on a remote-tracking ref are excluded", %{repo: dir} do
+      write(dir, "lib/pushed.ex", "p\n")
+      stage(dir, ["lib/pushed.ex"])
+      commit(dir, "already pushed")
+      sh!(dir, ["update-ref", "refs/remotes/origin/main", "HEAD"])
+
+      write(dir, "lib/fresh.ex", "n\n")
+      stage(dir, ["lib/fresh.ex"])
+      commit(dir, "not yet pushed")
+
+      sha = String.trim(sh!(dir, ["rev-parse", "HEAD"]))
+      zero = String.duplicate("0", String.length(sha))
+      line = "refs/heads/main #{sha} refs/heads/main #{zero}\n"
+
+      in_repo(dir, fn ->
+        assert {:ok, files} = Git.push_files(line)
+        assert "lib/fresh.ex" in files
+        refute "lib/pushed.ex" in files
       end)
     end
 
