@@ -26,12 +26,8 @@ defmodule GitHoox.Runner do
           :ok | {:error, [hook_outcome()]}
   def run(stage, args \\ [], stdin \\ nil) do
     with {:ok, config} <- Config.load(),
-         {:ok, files} <- files_for_stage(stage, args, stdin) do
-      entries =
-        config.hooks
-        |> Keyword.get(stage, [])
-        |> filter_skipped(config.skip_env)
-
+         entries = entries_for_stage(config, stage),
+         {:ok, files} <- files_for_stage(entries, stage, args, stdin) do
       Telemetry.stage_span(stage, length(entries), length(files), fn ->
         execute(entries, files, config, stage)
       end)
@@ -47,7 +43,20 @@ defmodule GitHoox.Runner do
     end
   end
 
-  defp files_for_stage(stage, args, stdin) do
+  defp entries_for_stage(config, stage) do
+    config.hooks
+    |> Keyword.get(stage, [])
+    |> filter_skipped(config.skip_env)
+  end
+
+  # Resolving the file set shells out to git, which fails closed. Doing it
+  # only once a hook is actually going to run keeps the escape hatches
+  # working when git is the thing that is broken: `GIT_HOOX=0` and a stage
+  # with no configured hooks need no file set, so they must not be able to
+  # trip over one.
+  defp files_for_stage([], _stage, _args, _stdin), do: {:ok, []}
+
+  defp files_for_stage(_entries, stage, args, stdin) do
     case resolve_files(stage, args, stdin) do
       {:ok, _files} = ok -> ok
       {:error, {:missing_args, _}} = err -> err

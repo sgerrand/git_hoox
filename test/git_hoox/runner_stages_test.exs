@@ -135,6 +135,40 @@ defmodule GitHoox.RunnerStagesTest do
     assert [] = TestHooks.RecordFiles.captured()
   end
 
+  test "skip env=0 still escapes a stage git cannot resolve", %{repo: dir} do
+    write_config(dir, """
+    %{hooks: [pre_push: [{GitHoox.TestHooks.RecordFiles, []}]]}
+    """)
+
+    stdin =
+      "refs/heads/main #{String.duplicate("a", 40)} refs/heads/main #{String.duplicate("b", 40)}\n"
+
+    System.put_env("GIT_HOOX", "0")
+
+    try do
+      in_repo(dir, fn ->
+        assert :ok = Runner.run(:pre_push, ["origin", "git@x:y.git"], stdin)
+      end)
+    after
+      System.delete_env("GIT_HOOX")
+    end
+
+    assert [] = TestHooks.RecordFiles.captured()
+  end
+
+  test "a stage with no configured hooks ignores git failures", %{repo: dir} do
+    write_config(dir, """
+    %{hooks: [pre_commit: [{GitHoox.TestHooks.RecordFiles, []}]]}
+    """)
+
+    stdin =
+      "refs/heads/main #{String.duplicate("a", 40)} refs/heads/main #{String.duplicate("b", 40)}\n"
+
+    in_repo(dir, fn ->
+      assert :ok = Runner.run(:pre_push, ["origin", "git@x:y.git"], stdin)
+    end)
+  end
+
   test "Shell hook on pre_push expands {push_files} from parsed stdin", %{repo: dir} do
     write(dir, "lib/foo.ex", "x\n")
     stage(dir, ["lib/foo.ex"])
