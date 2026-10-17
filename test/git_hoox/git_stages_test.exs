@@ -107,25 +107,58 @@ defmodule GitHoox.GitStagesTest do
       end)
     end
 
-    test "git error on bogus sha yields empty list", %{repo: dir} do
+    test "git error on bogus sha surfaces instead of yielding no files", %{repo: dir} do
       line =
         "refs/heads/main deadbeefdeadbeefdeadbeefdeadbeefdeadbeef " <>
           "refs/heads/main cafebabecafebabecafebabecafebabecafebabe\n"
 
       in_repo(dir, fn ->
-        assert {:ok, []} = Git.push_files(line)
+        assert {:error, {code, _out}} = Git.push_files(line)
+        assert is_integer(code) and code != 0
+      end)
+    end
+
+    test "remote sha absent from the object store falls back to the tip listing", %{repo: dir} do
+      write(dir, "lib/a.ex", "a\n")
+      stage(dir, ["lib/a.ex"])
+      commit(dir, "a")
+      local = String.trim(sh!(dir, ["rev-parse", "HEAD"]))
+
+      # Shaped like a real sha, but no such object here: what git hands
+      # the hook whenever the remote branch moved on since our last fetch.
+      unfetched = String.duplicate("b", 40)
+      line = "refs/heads/main #{local} refs/heads/main #{unfetched}\n"
+
+      in_repo(dir, fn ->
+        assert {:ok, files} = Git.push_files(line)
+        assert "lib/a.ex" in files
+      end)
+    end
+
+    test "a failing ref aborts the whole parse", %{repo: dir} do
+      write(dir, "lib/a.ex", "a\n")
+      stage(dir, ["lib/a.ex"])
+      commit(dir, "a")
+      sha = String.trim(sh!(dir, ["rev-parse", "HEAD"]))
+      zero = String.duplicate("0", String.length(sha))
+
+      good = "refs/heads/main #{sha} refs/heads/main #{zero}\n"
+      bad = "refs/heads/x #{String.duplicate("a", 40)} refs/heads/x #{String.duplicate("b", 40)}\n"
+
+      in_repo(dir, fn ->
+        assert {:error, {_code, _out}} = Git.push_files(good <> bad)
       end)
     end
   end
 
   describe "changed_in_worktree/1" do
     test "empty list short-circuits" do
-      assert [] = Git.changed_in_worktree([])
+      assert {:ok, []} = Git.changed_in_worktree([])
     end
 
     test "non-existent file yields empty list", %{repo: dir} do
       in_repo(dir, fn ->
-        assert [] = Git.changed_in_worktree(["does/not/exist.ex"])
+        assert {:ok, []} = Git.changed_in_worktree(["does/not/exist.ex"])
       end)
     end
   end

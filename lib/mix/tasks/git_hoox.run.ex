@@ -83,6 +83,10 @@ defmodule Mix.Tasks.GitHoox.Run do
     IO.puts(:stderr, ConfigError.format(reason))
   end
 
+  defp print_failure({:git, {:error, {code, out}}}) do
+    IO.puts(:stderr, "git_hoox: git failed (exit #{code}) while resolving files:\n#{out}")
+  end
+
   defp print_failure({:stage, {:error, {:missing_args, stage}}}) do
     IO.puts(
       :stderr,
@@ -96,6 +100,14 @@ defmodule Mix.Tasks.GitHoox.Run do
 
   defp print_failure({mod, {:error, {:crashed, reason}}}) do
     IO.puts(:stderr, "#{inspect(mod)} crashed: #{inspect(reason)}")
+  end
+
+  defp print_failure({mod, {:error, {:restage_scan, {code, out}}}}) do
+    IO.puts(
+      :stderr,
+      "#{inspect(mod)} ran clean, but git failed (exit #{code}) listing what it " <>
+        "changed — any rewritten files were left unstaged:\n#{out}"
+    )
   end
 
   defp print_failure({mod, {:error, {code, out}}}) when is_integer(code) do
