@@ -10,7 +10,18 @@ GitHoox is a pure-Elixir git hooks runner. It writes shell shims into
 configured hook. Design goal: lefthook parity (no implicit stashing, opt-in
 re-staging) without requiring a Node or Python runtime.
 
-Elixir `~> 1.17` (CI tests 1.17, 1.18, 1.19 on OTP 26/27).
+Elixir `~> 1.17` (CI tests 1.17 on OTP 26, 1.18 on 27, 1.19 on 28, 1.20 on
+29).
+
+`.tool-versions` pins the development toolchain — Elixir 1.20.4 on OTP 29.1
+— and is what asdf/mise read locally. Every CI job outside the test matrix
+takes its versions from that file via `setup-beam`'s `version-file`: lint,
+coverage, dialyzer and docs in `ci.yml`, all three jobs in `ci-slow.yml`,
+and publish in `publish.yml`. So bumping `.tool-versions` moves those jobs,
+and `mix format --check-formatted` and `mix credo --strict` are judged by
+the pinned version rather than the `~> 1.17` floor. `publish.yml` reads the
+file from the checked-out release tag, so tags cut before it existed cannot
+run that workflow without a re-pin.
 
 ## Commands
 
