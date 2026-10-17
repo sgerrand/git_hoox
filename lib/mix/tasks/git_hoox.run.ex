@@ -102,6 +102,14 @@ defmodule Mix.Tasks.GitHoox.Run do
     IO.puts(:stderr, "#{inspect(mod)} crashed: #{inspect(reason)}")
   end
 
+  defp print_failure({mod, {:error, {:restage_scan, {code, out}}}}) do
+    IO.puts(
+      :stderr,
+      "#{inspect(mod)} ran clean, but git failed (exit #{code}) listing what it " <>
+        "changed — any rewritten files were left unstaged:\n#{out}"
+    )
+  end
+
   defp print_failure({mod, {:error, {code, out}}}) when is_integer(code) do
     IO.puts(:stderr, "#{inspect(mod)} failed (exit #{code}):\n#{out}")
   end

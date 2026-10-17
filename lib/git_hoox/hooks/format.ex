@@ -51,8 +51,21 @@ defmodule GitHoox.Hooks.Format do
       # --check-formatted never writes, so there is nothing to re-stage and
       # no reason to pay for a `git diff` to find out.
       {_, 0} when check? -> :ok
-      {_, 0} -> GitHoox.Git.changed_in_worktree(files)
+      {_, 0} -> scan_changed(files)
       tuple -> Helpers.to_result(tuple)
+    end
+  end
+
+  # `mix format` has already exited 0 and rewritten the files by this
+  # point, so a failure here is git's, not the formatter's. Tag it rather
+  # than returning the bare `{code, out}` the formatter itself would
+  # produce: reported untagged it reads as "Format failed", which blames
+  # the wrong command and buries the part that matters — the files were
+  # changed on disk and nothing was re-staged.
+  defp scan_changed(files) do
+    case GitHoox.Git.changed_in_worktree(files) do
+      {:ok, _} = ok -> ok
+      {:error, reason} -> {:error, {:restage_scan, reason}}
     end
   end
 end
