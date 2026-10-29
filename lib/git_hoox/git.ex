@@ -38,14 +38,11 @@ defmodule GitHoox.Git do
   Files modified in worktree since index, scoped to `candidates`.
   Used to detect what a hook mutated.
   """
-  @spec changed_in_worktree([GitHoox.path()]) :: [GitHoox.path()]
-  def changed_in_worktree([]), do: []
+  @spec changed_in_worktree([GitHoox.path()]) :: {:ok, [GitHoox.path()]} | git_error()
+  def changed_in_worktree([]), do: {:ok, []}
 
   def changed_in_worktree(candidates) do
-    case cmd(["diff", "--name-only", "-z", "--" | candidates]) do
-      {:ok, out} -> split_z(out)
-      _ -> []
-    end
+    cmd(["diff", "--name-only", "-z", "--" | candidates]) |> parse_z()
   end
 
   @doc "Re-stage files via `git add`."
@@ -93,18 +90,23 @@ defmodule GitHoox.Git do
   Stdin format per `githooks(5)`:
   `<local_ref> <local_sha> <remote_ref> <remote_sha>` per line.
   """
-  @spec push_files(String.t() | nil) :: {:ok, [GitHoox.path()]}
+  @spec push_files(String.t() | nil) :: {:ok, [GitHoox.path()]} | git_error()
   def push_files(nil), do: {:ok, []}
   def push_files(""), do: {:ok, []}
 
   def push_files(stdin) when is_binary(stdin) do
-    files =
-      stdin
-      |> String.split("\n", trim: true)
-      |> Enum.flat_map(&push_ref_files/1)
-      |> Enum.uniq()
-
-    {:ok, files}
+    stdin
+    |> String.split("\n", trim: true)
+    |> Enum.reduce_while({:ok, []}, fn line, {:ok, acc} ->
+      case push_ref_files(line) do
+        {:ok, files} -> {:cont, {:ok, [files | acc]}}
+        err -> {:halt, err}
+      end
+    end)
+    |> case do
+      {:ok, chunks} -> {:ok, chunks |> Enum.reverse() |> Enum.concat() |> Enum.uniq()}
+      err -> err
+    end
   end
 
   defp push_ref_files(line) do
@@ -113,7 +115,7 @@ defmodule GitHoox.Git do
         push_kind(local_sha, remote_sha) |> push_files_for(local_sha, remote_sha)
 
       _ ->
-        []
+        {:ok, []}
     end
   end
 
@@ -126,22 +128,30 @@ defmodule GitHoox.Git do
   end
 
   # Deleting a remote ref pushes no content — nothing to scan.
-  defp push_files_for(:delete, _local, _remote), do: []
+  defp push_files_for(:delete, _local, _remote), do: {:ok, []}
 
   defp push_files_for(:create, local, _remote) do
     run_split(["show", "--name-only", "--pretty=format:", "-z", local])
   end
 
+  # The remote sha comes from the remote's advertised refs, not from our
+  # object store, so it is routinely an object we do not hold: a branch
+  # that moved upstream since the last fetch, a shallow or partial clone,
+  # or a push to an unrelated fork all hand us a sha `git diff` cannot
+  # resolve. Scan the tip like a new ref in that case rather than failing
+  # the push — git's own non-fast-forward error is the one the user needs
+  # to see, and aborting here would hide it.
   defp push_files_for(:update, local, remote) do
-    run_split(["diff", "--name-only", "-z", "#{remote}..#{local}"])
-  end
-
-  defp run_split(args) do
-    case cmd(args) do
-      {:ok, out} -> split_z(out)
-      _ -> []
+    if have_object?(remote) do
+      run_split(["diff", "--name-only", "-z", "#{remote}..#{local}"])
+    else
+      push_files_for(:create, local, remote)
     end
   end
+
+  defp have_object?(sha), do: match?({:ok, _}, cmd(["cat-file", "-e", sha]))
+
+  defp run_split(args), do: args |> cmd() |> parse_z()
 
   defp zero_sha?(sha), do: sha != "" and String.replace(sha, "0", "") == ""
 

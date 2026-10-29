@@ -71,6 +71,25 @@ defmodule Mix.Tasks.GitHoox.RunTest do
     assert err =~ "bad"
   end
 
+  test "restage_scan failure blames git, not the hook", %{repo: dir} do
+    write(dir, "lib/foo.ex", "x\n")
+    stage(dir, ["lib/foo.ex"])
+
+    write_config(dir, """
+    %{hooks: [pre_commit: [{GitHoox.TestHooks.Fail, [reason: {:restage_scan, {129, "nope"}}]}]]}
+    """)
+
+    err =
+      capture_io(:stderr, fn ->
+        catch_exit(in_repo(dir, fn -> RunTask.run(["pre-commit"]) end))
+      end)
+
+    assert err =~ "ran clean, but git failed (exit 129)"
+    assert err =~ "left unstaged"
+    assert err =~ "nope"
+    refute err =~ "Fail failed"
+  end
+
   test "timeout failure prints `timed out` line", %{repo: dir} do
     write(dir, "lib/foo.ex", "x\n")
     stage(dir, ["lib/foo.ex"])
@@ -134,9 +153,9 @@ defmodule Mix.Tasks.GitHoox.RunTest do
     %{hooks: [pre_push: []]}
     """)
 
-    # Malformed line is harmless — Git.push_files just yields []. The point is
+    # A line without four fields is skipped — Git.push_files just yields []. The point is
     # to exercise the binary-data branch of read_stdin/1.
-    capture_io("refs/heads/x sha refs/heads/x sha\n", fn ->
+    capture_io("refs/heads/x sha refs/heads/x\n", fn ->
       in_repo(dir, fn ->
         assert :ok = RunTask.run(["pre-push"])
       end)

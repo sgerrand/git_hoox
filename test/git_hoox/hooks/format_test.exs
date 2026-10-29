@@ -49,6 +49,21 @@ defmodule GitHoox.Hooks.FormatTest do
     end)
   end
 
+  test "git failure after a clean format is tagged, not blamed on the formatter", %{repo: dir} do
+    install_fake_mix(dir, "exit 0\n")
+
+    # Outside a worktree the follow-up `git diff` fails even though the
+    # formatter exited 0 — the hook must not report that as its own failure.
+    tmp = Path.join(System.tmp_dir!(), "no_repo_#{System.unique_integer([:positive])}")
+    File.mkdir_p!(tmp)
+    on_exit(fn -> File.rm_rf!(tmp) end)
+
+    File.cd!(tmp, fn ->
+      assert {:error, {:restage_scan, {code, _out}}} = Format.run(["lib/foo.ex"], [])
+      assert is_integer(code) and code != 0
+    end)
+  end
+
   test ":args splice between task and files", %{repo: dir} do
     install_fake_mix(dir, ~S"""
     # Expect: format --dot-formatter custom.exs -- lib/foo.ex

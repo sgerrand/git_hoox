@@ -226,6 +226,9 @@ defmodule GitHoox.Reporter do
     IO.puts(IO.ANSI.format(ansidata, color?))
   end
 
+  defp reason_label({:restage_scan, {code, out}}) when is_integer(code) and is_binary(out),
+    do: "git exit #{code}, not re-staged"
+
   defp reason_label({code, out}) when is_integer(code) and is_binary(out), do: "exit #{code}"
   defp reason_label(other), do: truncate(inspect(other))
 
