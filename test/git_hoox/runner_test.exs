@@ -145,6 +145,22 @@ defmodule GitHoox.RunnerTest do
     assert staged_diff =~ "mutated"
   end
 
+  test "stage_fixed: a failed re-stage fails the hook", %{repo: dir} do
+    write(dir, "lib/foo.ex", "v1\n")
+    stage(dir, ["lib/foo.ex"])
+
+    write_config(dir, """
+    %{hooks: [pre_commit: [{GitHoox.TestHooks.ReportModified, modified: ["no/such.ex"]}]]}
+    """)
+
+    in_repo(dir, fn ->
+      assert {:error, [{GitHoox.TestHooks.ReportModified, {:error, {code, _out}}}]} =
+               Runner.run(:pre_commit)
+
+      assert is_integer(code)
+    end)
+  end
+
   test "skip env=0 disables all hooks", %{repo: dir} do
     write(dir, "lib/foo.ex", "x\n")
     stage(dir, ["lib/foo.ex"])

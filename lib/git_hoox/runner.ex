@@ -281,16 +281,19 @@ defmodule GitHoox.Runner do
 
   # Normalize every accepted hook return to the runner's narrow outcome
   # shape: :ok on success (with optional re-staging side effect) and the
-  # original {:error, _} on failure. Anything else is a contract violation
-  # and is allowed to FunctionClauseError so the bug surfaces immediately.
+  # original {:error, _} on failure. A failed re-stage is a failure too:
+  # the fix exists only in the worktree, so letting the commit proceed
+  # would record the unfixed version. Anything else is a contract
+  # violation and is allowed to FunctionClauseError so the bug surfaces
+  # immediately.
   defp maybe_restage(:ok, _opts), do: :ok
 
   defp maybe_restage({:ok, modified}, opts) when is_list(modified) do
     if Keyword.get(opts, :stage_fixed, false) and modified != [] do
       Git.restage(modified)
+    else
+      :ok
     end
-
-    :ok
   end
 
   defp maybe_restage({:error, _} = err, _opts), do: err

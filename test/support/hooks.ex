@@ -39,6 +39,17 @@ defmodule GitHoox.TestHooks do
     end
   end
 
+  defmodule ReportModified do
+    @moduledoc false
+    @behaviour GitHoox.Hook
+
+    @impl true
+    def default_opts, do: [files: ["**/*"], stage_fixed: true]
+
+    @impl true
+    def run(_files, opts), do: {:ok, Keyword.fetch!(opts, :modified)}
+  end
+
   defmodule Counter do
     @moduledoc false
     @behaviour GitHoox.Hook
