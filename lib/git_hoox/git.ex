@@ -89,6 +89,23 @@ defmodule GitHoox.Git do
 
   Stdin format per `githooks(5)`:
   `<local_ref> <local_sha> <remote_ref> <remote_sha>` per line.
+
+  For a ref the remote already has, this is the diff across the pushed
+  range. Otherwise it is the union of the files touched by every commit
+  reachable from the local sha but not from any remote-tracking ref. Git
+  does not tell the hook what the remote actually holds, so that
+  approximation has two known edges:
+
+    * With no `refs/remotes` at all — a first publish — there is nothing
+      to exclude and the whole history's files are listed. Correct in the
+      sense that every commit really is being pushed, but it means hooks
+      run over the whole tree on that one push.
+    * Commits already reachable from some *other* remote-tracking ref are
+      excluded, so pushing a new branch to a fork whose base lives on
+      `origin` scans less than the full set.
+
+  Both err toward scanning too much rather than too little, which is the
+  safer direction for a quality gate.
   """
   @spec push_files(String.t() | nil) :: {:ok, [GitHoox.path()]} | git_error()
   def push_files(nil), do: {:ok, []}
@@ -130,8 +147,14 @@ defmodule GitHoox.Git do
   # Deleting a remote ref pushes no content — nothing to scan.
   defp push_files_for(:delete, _local, _remote), do: {:ok, []}
 
+  # `git show` on the tip lists only that one commit's files: a branch with
+  # N commits would be scanned as though it were one, and a clean merge tip
+  # scans nothing at all, its condensed combined diff being empty. Walk
+  # every commit not already reachable from a remote-tracking ref instead
+  # and take the union. `-c` keeps merge commits from dropping out, and is
+  # used rather than `--diff-merges=combined`, which needs git >= 2.31.
   defp push_files_for(:create, local, _remote) do
-    run_split(["show", "--name-only", "--pretty=format:", "-z", local])
+    run_split(["log", "-c", "--format=", "--name-only", "-z", local, "--not", "--remotes"])
   end
 
   # The remote sha comes from the remote's advertised refs, not from our
