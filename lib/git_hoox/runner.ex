@@ -26,12 +26,8 @@ defmodule GitHoox.Runner do
           :ok | {:error, [hook_outcome()]}
   def run(stage, args \\ [], stdin \\ nil) do
     with {:ok, config} <- Config.load(),
-         {:ok, files} <- files_for_stage(stage, args, stdin) do
-      entries =
-        config.hooks
-        |> Keyword.get(stage, [])
-        |> filter_skipped(config.skip_env)
-
+         entries = entries_for_stage(config, stage),
+         {:ok, files} <- files_for_stage(entries, stage, args, stdin) do
       Telemetry.stage_span(stage, length(entries), length(files), fn ->
         execute(entries, files, config, stage)
       end)
@@ -39,26 +35,51 @@ defmodule GitHoox.Runner do
       {:error, {:missing_args, _} = reason} ->
         {:error, [{:stage, {:error, reason}}]}
 
+      {:error, {:git, reason}} ->
+        {:error, [{:git, {:error, reason}}]}
+
       {:error, reason} ->
         {:error, [{:config, {:error, reason}}]}
     end
   end
 
-  defp files_for_stage(:pre_commit, _args, _stdin), do: Git.staged_files()
-  defp files_for_stage(:commit_msg, [path | _], _), do: {:ok, [path]}
-  defp files_for_stage(:commit_msg, _, _), do: {:error, {:missing_args, :commit_msg}}
-  defp files_for_stage(:prepare_commit_msg, [path | _], _), do: {:ok, [path]}
+  defp entries_for_stage(config, stage) do
+    config.hooks
+    |> Keyword.get(stage, [])
+    |> filter_skipped(config.skip_env)
+  end
 
-  defp files_for_stage(:prepare_commit_msg, _, _),
+  # Resolving the file set shells out to git, which fails closed. Doing it
+  # only once a hook is actually going to run keeps the escape hatches
+  # working when git is the thing that is broken: `GIT_HOOX=0` and a stage
+  # with no configured hooks need no file set, so they must not be able to
+  # trip over one.
+  defp files_for_stage([], _stage, _args, _stdin), do: {:ok, []}
+
+  defp files_for_stage(_entries, stage, args, stdin) do
+    case resolve_files(stage, args, stdin) do
+      {:ok, _files} = ok -> ok
+      {:error, {:missing_args, _}} = err -> err
+      # Every other error out of resolve_files/3 came from GitHoox.Git.
+      {:error, reason} -> {:error, {:git, reason}}
+    end
+  end
+
+  defp resolve_files(:pre_commit, _args, _stdin), do: Git.staged_files()
+  defp resolve_files(:commit_msg, [path | _], _), do: {:ok, [path]}
+  defp resolve_files(:commit_msg, _, _), do: {:error, {:missing_args, :commit_msg}}
+  defp resolve_files(:prepare_commit_msg, [path | _], _), do: {:ok, [path]}
+
+  defp resolve_files(:prepare_commit_msg, _, _),
     do: {:error, {:missing_args, :prepare_commit_msg}}
 
-  defp files_for_stage(:post_commit, _args, _stdin), do: Git.files_in_head()
-  defp files_for_stage(:post_merge, _args, _stdin), do: Git.merge_files()
-  defp files_for_stage(:post_checkout, [from, to | _], _), do: Git.diff_files(from, to)
-  defp files_for_stage(:post_checkout, _, _), do: {:error, {:missing_args, :post_checkout}}
-  defp files_for_stage(:pre_rebase, _args, _stdin), do: {:ok, []}
-  defp files_for_stage(:pre_push, _args, stdin), do: Git.push_files(stdin)
-  defp files_for_stage(_other, _args, _stdin), do: Git.all_files()
+  defp resolve_files(:post_commit, _args, _stdin), do: Git.files_in_head()
+  defp resolve_files(:post_merge, _args, _stdin), do: Git.merge_files()
+  defp resolve_files(:post_checkout, [from, to | _], _), do: Git.diff_files(from, to)
+  defp resolve_files(:post_checkout, _, _), do: {:error, {:missing_args, :post_checkout}}
+  defp resolve_files(:pre_rebase, _args, _stdin), do: {:ok, []}
+  defp resolve_files(:pre_push, _args, stdin), do: Git.push_files(stdin)
+  defp resolve_files(_other, _args, _stdin), do: Git.all_files()
 
   defp filter_skipped(entries, skip_env) do
     cond do

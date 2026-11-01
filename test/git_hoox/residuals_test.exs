@@ -98,8 +98,8 @@ defmodule GitHoox.ResidualsTest do
   end
 
   describe "Git" do
-    test "changed_in_worktree on git error returns []" do
-      in_tmp(fn _ -> assert [] = Git.changed_in_worktree(["x.ex"]) end)
+    test "changed_in_worktree on git error propagates it" do
+      in_tmp(fn _ -> assert {:error, {_code, _msg}} = Git.changed_in_worktree(["x.ex"]) end)
     end
 
     test "staged_files outside repo propagates the git error" do

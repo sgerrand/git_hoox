@@ -76,7 +76,7 @@ defmodule GitHoox.GitTest do
     write(dir, "lib/foo.ex", "v2\n")
 
     in_repo(dir, fn ->
-      assert ["lib/foo.ex"] = Git.changed_in_worktree(["lib/foo.ex"])
+      assert {:ok, ["lib/foo.ex"]} = Git.changed_in_worktree(["lib/foo.ex"])
     end)
   end
 
@@ -86,7 +86,7 @@ defmodule GitHoox.GitTest do
     commit(dir, "add foo")
 
     in_repo(dir, fn ->
-      assert [] = Git.changed_in_worktree(["lib/foo.ex"])
+      assert {:ok, []} = Git.changed_in_worktree(["lib/foo.ex"])
     end)
   end
 
