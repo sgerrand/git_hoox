@@ -24,15 +24,44 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
+      # Build each pinned git once and reuse it. The key deliberately includes
+      # the compiler version and distro release: a toolchain bump is exactly
+      # what broke this matrix before, so a cached binary must never hide it.
+      - name: Resolve git cache key
+        if: matrix.git != 'latest'
+        id: git-meta
+        env:
+          GIT_VERSION: ${{ matrix.git }}
+        run: |
+          set -euo pipefail
+          . /etc/os-release
+          {
+            echo "prefix=$HOME/.local/git-$GIT_VERSION"
+            echo "key=git-$GIT_VERSION-$VERSION_ID-cc$(cc -dumpversion 2>/dev/null || echo unknown)-${{ hashFiles('.github/workflows/ci-slow.yml') }}"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Restore cached git ${{ matrix.git }}
+        if: matrix.git != 'latest'
+        id: git-cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ steps.git-meta.outputs.prefix }}
+          key: ${{ steps.git-meta.outputs.key }}
+
       - name: Install git ${{ matrix.git }}
         env:
           GIT_VERSION: ${{ matrix.git }}
+          GIT_PREFIX: ${{ steps.git-meta.outputs.prefix }}
+          CACHE_HIT: ${{ steps.git-cache.outputs.cache-hit }}
         run: |
           set -euo pipefail
           if [ "$GIT_VERSION" = "latest" ]; then
             sudo add-apt-repository -y ppa:git-core/ppa
             sudo apt-get update
             sudo apt-get install -y git
+          elif [ "$CACHE_HIT" = "true" ]; then
+            echo "Reusing cached build at $GIT_PREFIX"
+            echo "$GIT_PREFIX/bin" >> "$GITHUB_PATH"
           else
             sudo apt-get update
             sudo apt-get install -y build-essential gettext zlib1g-dev
@@ -64,7 +93,7 @@ jobs:
             # tests only exercise local plumbing (ls-files, diff, rev-parse,
             # cat-file, show, add), never a network remote.
             make_args=(
-              prefix=/usr/local
+              prefix="$GIT_PREFIX"
               CFLAGS="-g -O2 -Wall -std=gnu17"
               NO_CURL=1
               NO_EXPAT=1
@@ -72,9 +101,23 @@ jobs:
               NO_TCLTK=1
             )
             make -j"$(nproc)" "${make_args[@]}" all
-            sudo make "${make_args[@]}" install
+            make "${make_args[@]}" install
+            echo "$GIT_PREFIX/bin" >> "$GITHUB_PATH"
           fi
+
+      # $GITHUB_PATH only applies to later steps, so this cannot be folded
+      # into the step above. Assert the pinned build is what the suite will
+      # actually use, rather than the image's own git.
+      - name: Verify git ${{ matrix.git }} is active
+        env:
+          GIT_VERSION: ${{ matrix.git }}
+        run: |
+          set -euo pipefail
+          echo "which git: $(which git)"
           git --version
+          if [ "$GIT_VERSION" != "latest" ]; then
+            test "$(git --version)" = "git version $GIT_VERSION"
+          fi
 
       - uses: erlef/setup-beam@54075bcc5e249e4758d363f27d099f55d843f124 # v1.24.1
         id: beam
