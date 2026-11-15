@@ -199,6 +199,34 @@ defmodule GitHoox.GitStagesTest do
       end)
     end
 
+    test "a merge commit's own changes are listed when its parents are pushed", %{repo: dir} do
+      sh!(dir, ["checkout", "-q", "-b", "feature"])
+      write(dir, "lib/feature.ex", "f\n")
+      stage(dir, ["lib/feature.ex"])
+      commit(dir, "feature")
+      sh!(dir, ["update-ref", "refs/remotes/origin/feature", "HEAD"])
+
+      sh!(dir, ["checkout", "-q", "main"])
+      sh!(dir, ["update-ref", "refs/remotes/origin/main", "HEAD"])
+
+      # Content introduced by the merge commit itself, as with a conflict
+      # resolution or an "evil merge". Both parents are already on a remote,
+      # so the merge is the only commit walked. Without `-c`, `git log`
+      # prints no diff for a merge and this push would scan nothing.
+      sh!(dir, ["merge", "-q", "--no-ff", "--no-commit", "feature"])
+      write(dir, "lib/merge_only.ex", "m\n")
+      stage(dir, ["lib/merge_only.ex"])
+      commit(dir, "merge feature")
+
+      sha = String.trim(sh!(dir, ["rev-parse", "HEAD"]))
+      zero = String.duplicate("0", String.length(sha))
+      line = "refs/heads/main #{sha} refs/heads/main #{zero}\n"
+
+      in_repo(dir, fn ->
+        assert {:ok, ["lib/merge_only.ex"]} = Git.push_files(line)
+      end)
+    end
+
     test "a failing ref aborts the whole parse", %{repo: dir} do
       write(dir, "lib/a.ex", "a\n")
       stage(dir, ["lib/a.ex"])
