@@ -104,8 +104,9 @@ defmodule GitHoox.Git do
       excluded, so pushing a new branch to a fork whose base lives on
       `origin` scans less than the full set.
 
-  Both err toward scanning too much rather than too little, which is the
-  safer direction for a quality gate.
+  The first errs toward scanning too much. The second scans too little,
+  but only for commits that already exist on another remote, and it is
+  still a strict improvement on scanning just the tip.
   """
   @spec push_files(String.t() | nil) :: {:ok, [GitHoox.path()]} | git_error()
   def push_files(nil), do: {:ok, []}
