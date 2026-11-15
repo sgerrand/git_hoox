@@ -13,7 +13,7 @@ re-staging) without requiring a Node or Python runtime.
 Elixir `~> 1.17` (CI tests 1.17 on OTP 26, 1.18 on 27, 1.19 on 28, 1.20 on
 29).
 
-`.tool-versions` pins the development toolchain — Elixir 1.20.4 on OTP 29.1
+`.tool-versions` pins the development toolchain — Elixir 1.20.5 on OTP 29.1
 — and is what asdf/mise read locally. Every CI job outside the test matrix
 takes its versions from that file via `setup-beam`'s `version-file`: lint,
 coverage, dialyzer and docs in `ci.yml`, all three jobs in `ci-slow.yml`,
